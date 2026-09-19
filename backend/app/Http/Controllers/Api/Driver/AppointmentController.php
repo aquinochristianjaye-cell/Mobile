@@ -98,4 +98,16 @@ Notification::create([
         'appointment' => $appointment->load('driver'),
     ], 200);
 }
+
+    public function completed($driverId)
+    {
+        $appointments = Appointment::where('driver_id', $driverId)
+            ->where('status', 'completed')
+            ->orderByDesc('preferred_datetime')
+            ->get();
+
+        return response()->json([
+            'appointments' => $appointments,
+        ], 200);
+    }
 }

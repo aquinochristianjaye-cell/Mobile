@@ -5,13 +5,28 @@ import 'settings.dart';
 class MainScreenDriver extends StatelessWidget {
   final int driverId;
 
+  // Appointment information
+  final int? appointmentId;
+  final String? plateNumber;
+  final String? livestockLoad;
+  final String? preferredTime;
+  final String? comingFrom;
+
   const MainScreenDriver({
     Key? key,
     required this.driverId,
+    this.appointmentId,
+    this.plateNumber,
+    this.livestockLoad,
+    this.preferredTime,
+    this.comingFrom,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // The Current Unit only appears when an appointment exists.
+    final bool hasAppointment = appointmentId != null;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B131E),
       body: SafeArea(
@@ -20,6 +35,7 @@ class MainScreenDriver extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // HEADER
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -74,78 +90,92 @@ class MainScreenDriver extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              // CURRENT UNIT
+              if (hasAppointment) ...[
+                const SizedBox(height: 24),
 
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'CURRENT UNIT',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 10,
-                        letterSpacing: 1.1,
-                      ),
-                    ),
-
-                    const SizedBox(height: 6),
-
-                    Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '#NBD 3721',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CURRENT UNIT',
+                        style: TextStyle(
+                          color: Colors.white54,
+                          fontSize: 10,
+                          letterSpacing: 1.1,
                         ),
+                      ),
 
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orange.shade700,
-                            borderRadius:
-                                BorderRadius.circular(20),
-                          ),
-                          child: const Text(
-                            'Driving',
-                            style: TextStyle(
+                      const SizedBox(height: 6),
+
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            '#${plateNumber ?? 'Unknown'}',
+                            style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 12,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
 
-                    const SizedBox(height: 8),
-
-                    const Text(
-                      'Cuyapo, Nueva Ecija',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade700,
+                              borderRadius:
+                                  BorderRadius.circular(20),
+                            ),
+                            child: const Text(
+                              'Driving',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        comingFrom ?? 'Location not specified',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      Text(
+                        '$livestockLoad • $preferredTime',
+                        style: const TextStyle(
+                          color: Colors.white54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
 
               const SizedBox(height: 20),
 
+              // NEW APPOINTMENT BUTTON
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -159,7 +189,6 @@ class MainScreenDriver extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   onPressed: () {
                     Navigator.push(
                       context,
@@ -171,7 +200,6 @@ class MainScreenDriver extends StatelessWidget {
                       ),
                     );
                   },
-
                   child: const Text(
                     'SET NEW WASH APPOINTMENT',
                     style: TextStyle(
@@ -283,4 +311,3 @@ class MainScreenDriver extends StatelessWidget {
     );
   }
 }
-

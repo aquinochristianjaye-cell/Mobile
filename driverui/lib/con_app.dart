@@ -105,12 +105,14 @@ class _ConfirmAppDriverScreenState
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => QrCodeDriverScreen(
-              appointmentId: appointmentId,
-              plateNumber: widget.plateNumber,
-              livestockLoad: widget.livestockLoad,
-              preferredTime: widget.preferredTime,
-            ),
+           builder: (context) => QrCodeDriverScreen(
+                driverId: widget.driverId,
+                appointmentId: appointmentId,
+                plateNumber: widget.plateNumber,
+                livestockLoad: widget.livestockLoad,
+                preferredTime: widget.preferredTime,
+                comingFrom: widget.comingFrom,
+              ),
           ),
         );
       } else {

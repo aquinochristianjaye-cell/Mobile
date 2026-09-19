@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'settings.dart';
+import 'dashboard_driver.dart';
 
 class QrCodeDriverScreen extends StatelessWidget {
+  final int driverId;
   final int appointmentId;
   final String plateNumber;
   final String livestockLoad;
   final String preferredTime;
+  final String comingFrom;
 
   const QrCodeDriverScreen({
     Key? key,
+    required this.driverId,
     required this.appointmentId,
     required this.plateNumber,
     required this.livestockLoad,
     required this.preferredTime,
+    required this.comingFrom,
   }) : super(key: key);
 
   @override
@@ -206,9 +211,18 @@ class QrCodeDriverScreen extends StatelessWidget {
                     ),
                   ),
                   onPressed: () {
-                    Navigator.popUntil(
+                    Navigator.pushReplacement(
                       context,
-                      (route) => route.isFirst,
+                      MaterialPageRoute(
+                        builder: (context) => MainScreenDriver(
+                          driverId: driverId,
+                          appointmentId: appointmentId,
+                          plateNumber: plateNumber,
+                          livestockLoad: livestockLoad,
+                          preferredTime: preferredTime,
+                          comingFrom: comingFrom,
+                        ),
+                      ),
                     );
                   },
                   child: const Text(
