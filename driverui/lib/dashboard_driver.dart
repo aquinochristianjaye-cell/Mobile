@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
 import 'appoint.dart';
 import 'settings.dart';
 
-class MainScreenDriver extends StatelessWidget {
+class MainScreenDriver extends StatefulWidget {
   final int driverId;
 
-  // Appointment information
+  // Current appointment information
   final int? appointmentId;
   final String? plateNumber;
   final String? livestockLoad;
@@ -23,9 +27,65 @@ class MainScreenDriver extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<MainScreenDriver> createState() =>
+      _MainScreenDriverState();
+}
+
+class _MainScreenDriverState extends State<MainScreenDriver> {
+  List<Map<String, dynamic>> completedAppointments = [];
+
+  bool isLoadingWashes = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCompletedWashes();
+  }
+
+  Future<void> _loadCompletedWashes() async {
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'http://127.0.0.1:8000/api/driver/${widget.driverId}/completed',
+        ),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        if (!mounted) return;
+
+        setState(() {
+          completedAppointments =
+              List<Map<String, dynamic>>.from(
+            data['appointments'] ?? [],
+          );
+
+          isLoadingWashes = false;
+        });
+      } else {
+        if (!mounted) return;
+
+        setState(() {
+          isLoadingWashes = false;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoadingWashes = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     // The Current Unit only appears when an appointment exists.
-    final bool hasAppointment = appointmentId != null;
+    final bool hasAppointment = widget.appointmentId != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B131E),
@@ -37,10 +97,12 @@ class MainScreenDriver extends StatelessWidget {
             children: [
               // HEADER
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
                 children: [
                   Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: const [
                       Text(
                         'Hi Logan,',
@@ -74,7 +136,8 @@ class MainScreenDriver extends StatelessWidget {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color:
+                            Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -97,11 +160,14 @@ class MainScreenDriver extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16),
+                    color:
+                        Colors.white.withOpacity(0.12),
+                    borderRadius:
+                        BorderRadius.circular(16),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       const Text(
                         'CURRENT UNIT',
@@ -119,7 +185,7 @@ class MainScreenDriver extends StatelessWidget {
                             MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '#${plateNumber ?? 'Unknown'}',
+                            '#${widget.plateNumber ?? 'Unknown'}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
@@ -128,7 +194,8 @@ class MainScreenDriver extends StatelessWidget {
                           ),
 
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding:
+                                const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
@@ -152,7 +219,8 @@ class MainScreenDriver extends StatelessWidget {
                       const SizedBox(height: 8),
 
                       Text(
-                        comingFrom ?? 'Location not specified',
+                        widget.comingFrom ??
+                            'Location not specified',
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
@@ -162,7 +230,7 @@ class MainScreenDriver extends StatelessWidget {
                       const SizedBox(height: 8),
 
                       Text(
-                        '$livestockLoad • $preferredTime',
+                        '${widget.livestockLoad} • ${widget.preferredTime}',
                         style: const TextStyle(
                           color: Colors.white54,
                           fontSize: 12,
@@ -181,11 +249,14 @@ class MainScreenDriver extends StatelessWidget {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF162A45),
+                    backgroundColor:
+                        const Color(0xFF162A45),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius:
+                          BorderRadius.circular(12),
                       side: BorderSide(
-                        color: Colors.white.withOpacity(0.2),
+                        color:
+                            Colors.white.withOpacity(0.2),
                       ),
                     ),
                   ),
@@ -195,7 +266,7 @@ class MainScreenDriver extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (context) =>
                             SetAppDriverScreen(
-                          driverId: driverId,
+                          driverId: widget.driverId,
                         ),
                       ),
                     );
@@ -214,8 +285,9 @@ class MainScreenDriver extends StatelessWidget {
 
               const SizedBox(height: 28),
 
+              // RECENT WASHES
               const Text(
-                'RECENT DELIVERIES',
+                'RECENT WASHES',
                 style: TextStyle(
                   color: Colors.white54,
                   fontSize: 11,
@@ -226,27 +298,95 @@ class MainScreenDriver extends StatelessWidget {
               const SizedBox(height: 12),
 
               Expanded(
-                child: ListView(
-                  children: [
-                    _buildDeliveryItem(
-                      '#CAV 1234',
-                      '27 Aug • Cuyapo, Nueva Ecija',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _buildDeliveryItem(
-                      '#CAV 1234',
-                      '28 Aug • Lupao, Nueva Ecija',
-                    ),
-                  ],
-                ),
+                child: _buildRecentWashes(),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildRecentWashes() {
+    if (isLoadingWashes) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Colors.white54,
+        ),
+      );
+    }
+
+    if (completedAppointments.isEmpty) {
+      return const Center(
+        child: Text(
+          'No completed washes yet.',
+          style: TextStyle(
+            color: Colors.white54,
+            fontSize: 13,
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _loadCompletedWashes,
+      child: ListView.separated(
+        itemCount: completedAppointments.length,
+        separatorBuilder: (context, index) =>
+            const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final appointment =
+              completedAppointments[index];
+
+          final String plate =
+              appointment['truck_plate']?.toString() ??
+                  'Unknown';
+
+          final String comingFrom =
+              appointment['coming_from']?.toString() ??
+                  'Location not specified';
+
+          final String date =
+              _formatDate(
+            appointment['preferred_datetime'],
+          );
+
+          return _buildDeliveryItem(
+            '#$plate',
+            '$date • $comingFrom',
+          );
+        },
+      ),
+    );
+  }
+
+  String _formatDate(dynamic value) {
+    if (value == null) {
+      return 'Date not specified';
+    }
+
+    try {
+      final date = DateTime.parse(value.toString());
+
+      const months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
+      ];
+
+      return '${date.day} ${months[date.month - 1]}';
+    } catch (e) {
+      return value.toString();
+    }
   }
 
   Widget _buildDeliveryItem(
@@ -263,42 +403,49 @@ class MainScreenDriver extends StatelessWidget {
         mainAxisAlignment:
             MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
-            children: [
-              Text(
-                unit,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  unit,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 4),
+                const SizedBox(height: 4),
 
-              Text(
-                details,
-                style: const TextStyle(
-                  color: Colors.white54,
-                  fontSize: 12,
+                Text(
+                  details,
+                  style: const TextStyle(
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
+          const SizedBox(width: 10),
+
           Container(
-            padding: const EdgeInsets.symmetric(
+            padding:
+                const EdgeInsets.symmetric(
               horizontal: 10,
               vertical: 4,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFD4EDDA),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius:
+                  BorderRadius.circular(20),
             ),
             child: const Text(
-              'Delivered',
+              'Washed',
               style: TextStyle(
                 color: Color(0xFF155724),
                 fontSize: 11,
