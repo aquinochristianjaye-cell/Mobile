@@ -99,15 +99,29 @@ Notification::create([
     ], 200);
 }
 
-    public function completed($driverId)
-    {
-        $appointments = Appointment::where('driver_id', $driverId)
-            ->where('status', 'completed')
-            ->orderByDesc('preferred_datetime')
-            ->get();
+    public function status($driverId, $appointmentId)
+{
+    $appointment = Appointment::where('id', $appointmentId)
+        ->where('driver_id', $driverId)
+        ->first();
 
+    if (!$appointment) {
         return response()->json([
-            'appointments' => $appointments,
-        ], 200);
+            'message' => 'Appointment not found',
+        ], 404);
     }
+
+    return response()->json([
+        'appointment' => [
+            'id' => $appointment->id,
+            'driver_id' => $appointment->driver_id,
+            'truck_plate' => $appointment->truck_plate,
+            'coming_from' => $appointment->coming_from,
+            'livestock_load' => $appointment->livestock_load,
+            'preferred_datetime' => $appointment->preferred_datetime,
+            'status' => $appointment->status,
+            'arrived_at' => $appointment->arrived_at,
+        ],
+    ], 200);
+}
 }

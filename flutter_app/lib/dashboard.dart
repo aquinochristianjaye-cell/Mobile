@@ -897,7 +897,6 @@ class _Panel extends StatelessWidget {
 }
 
 /// ===================== LAYOUTS =====================
-
 class _WideLayout extends StatelessWidget {
   const _WideLayout();
 
@@ -907,18 +906,15 @@ class _WideLayout extends StatelessWidget {
     const bayColWidth = 270.0;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        IntrinsicHeight(
+        SizedBox(
           child: Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(
                 width: bayColWidth,
-                child:
-                    BayStatusPanel(),
+                child: BayStatusPanel(),
               ),
 
               const SizedBox(
@@ -928,9 +924,7 @@ class _WideLayout extends StatelessWidget {
               const Expanded(
                 flex: 2,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TrucksWaitingPanel(),
                     SizedBox(height: gap),
@@ -946,28 +940,23 @@ class _WideLayout extends StatelessWidget {
               Expanded(
                 flex: 2,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment
-                          .stretch,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SupplyLevelsPanel(),
 
                     SizedBox(height: gap),
 
                     Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Expanded(
-                          child:
-                              AvailableWashersPanel(),
+                          child: AvailableWashersPanel(),
                         ),
 
                         SizedBox(width: gap),
 
                         const Expanded(
-                          child:
-                              DriversPanel(),
+                          child: DriversPanel(),
                         ),
                       ],
                     ),
@@ -989,7 +978,6 @@ class _WideLayout extends StatelessWidget {
     );
   }
 }
-
 /// ===================== NARROW LAYOUT =====================
 
 class _NarrowLayout extends StatelessWidget {

@@ -14,6 +14,11 @@ Route::post('/driver/appointments', [AppointmentController::class, 'store']);
 Route::post('/driver/check-in', [AppointmentController::class, 'checkIn']);
 
 Route::get(
+    '/driver/{driverId}/appointments/{appointmentId}',
+    [AppointmentController::class, 'status']
+);
+
+Route::get(
     '/driver/{driverId}/completed',
     [AppointmentController::class, 'completed']
 );

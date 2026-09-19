@@ -20,8 +20,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
   // Controllers to capture user input
   final TextEditingController _truckUsedPlateController =
       TextEditingController();
-  final TextEditingController _comingFromController = TextEditingController();
-  final TextEditingController _plateNumberController = TextEditingController();
+  final TextEditingController _comingFromController =
+      TextEditingController();
   final TextEditingController _preferredTimeController =
       TextEditingController();
 
@@ -31,13 +31,13 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
   // GCash Controllers
   final TextEditingController _gcashAccountController =
       TextEditingController();
-  final TextEditingController _gcashPinController = TextEditingController();
+  final TextEditingController _gcashPinController =
+      TextEditingController();
 
   @override
   void dispose() {
     _truckUsedPlateController.dispose();
     _comingFromController.dispose();
-    _plateNumberController.dispose();
     _preferredTimeController.dispose();
     _gcashAccountController.dispose();
     _gcashPinController.dispose();
@@ -50,7 +50,9 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: DateTime.now().add(
+        const Duration(days: 365),
+      ),
     );
 
     if (pickedDate != null) {
@@ -100,7 +102,7 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
             pickedTime.minute,
           );
 
-          // Keep the readable version for the UI
+          // Keep a readable version for the UI
           _preferredTimeController.text =
               '$monthName ${pickedDate.day}, $hours:$minutes $period';
         });
@@ -110,9 +112,10 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    String selectedLoadText = _selectedLoadIndex == 0
-        ? 'Piglets (baby)'
-        : 'Hogs (large / adult)';
+    final String selectedLoadText =
+        _selectedLoadIndex == 0
+            ? 'Piglets (baby)'
+            : 'Hogs (large / adult)';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B131E),
@@ -124,13 +127,15 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
             children: [
               // Top Bar with Back Button and Profile Avatar
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color:
+                              Colors.white.withOpacity(0.15),
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
@@ -138,12 +143,14 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                             Icons.arrow_back,
                             color: Colors.white,
                           ),
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () =>
+                              Navigator.pop(context),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: const [
                           Text(
                             'New wash',
@@ -181,7 +188,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color:
+                            Colors.white.withOpacity(0.15),
                         shape: BoxShape.circle,
                       ),
                       alignment: Alignment.center,
@@ -212,16 +220,22 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
               const SizedBox(height: 6),
 
               TextField(
-                controller: _truckUsedPlateController,
-                style: const TextStyle(color: Colors.black87),
+                controller:
+                    _truckUsedPlateController,
+                style: const TextStyle(
+                  color: Colors.black87,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Enter truck used plate',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
+                  hintText:
+                      'Enter truck used plate',
+                  hintStyle: const TextStyle(
+                    color: Colors.black38,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -243,15 +257,20 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
 
               TextField(
                 controller: _comingFromController,
-                style: const TextStyle(color: Colors.black87),
+                style: const TextStyle(
+                  color: Colors.black87,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Enter origin barangay / town',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
+                  hintText:
+                      'Enter origin barangay / town',
+                  hintStyle: const TextStyle(
+                    color: Colors.black38,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -275,11 +294,16 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                 children: [
                   Expanded(
                     child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedLoadIndex = 0),
+                      onTap: () {
+                        setState(() {
+                          _selectedLoadIndex = 0;
+                        });
+                      },
                       child: Container(
                         padding:
-                            const EdgeInsets.symmetric(vertical: 16),
+                            const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: _selectedLoadIndex == 0
                               ? const Color(0xFFE2ECF8)
@@ -299,7 +323,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                               'Piglets',
                               style: TextStyle(
                                 color: Colors.black87,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
@@ -321,11 +346,16 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
 
                   Expanded(
                     child: GestureDetector(
-                      onTap: () =>
-                          setState(() => _selectedLoadIndex = 1),
+                      onTap: () {
+                        setState(() {
+                          _selectedLoadIndex = 1;
+                        });
+                      },
                       child: Container(
                         padding:
-                            const EdgeInsets.symmetric(vertical: 16),
+                            const EdgeInsets.symmetric(
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: _selectedLoadIndex == 1
                               ? const Color(0xFFE2ECF8)
@@ -345,7 +375,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                               'Hogs',
                               style: TextStyle(
                                 color: Colors.black87,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    FontWeight.bold,
                                 fontSize: 16,
                               ),
                             ),
@@ -367,36 +398,6 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
 
               const SizedBox(height: 16),
 
-              // Truck Plate Number
-              const Text(
-                'TRUCK PLATE NUMBER',
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: 10,
-                  letterSpacing: 1.1,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              TextField(
-                controller: _plateNumberController,
-                style: const TextStyle(color: Colors.black87),
-                decoration: InputDecoration(
-                  hintText: 'Enter plate number',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
               // Preferred Time Picker Field
               const Text(
                 'PREFERRED TIME',
@@ -410,14 +411,20 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
               const SizedBox(height: 6),
 
               TextField(
-                controller: _preferredTimeController,
+                controller:
+                    _preferredTimeController,
                 readOnly: true,
-                onTap: () => _selectDateTime(context),
-                style: const TextStyle(color: Colors.black87),
+                onTap: () =>
+                    _selectDateTime(context),
+                style: const TextStyle(
+                  color: Colors.black87,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Select date & time',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
+                  hintText:
+                      'Select date & time',
+                  hintStyle: const TextStyle(
+                    color: Colors.black38,
+                  ),
                   suffixIcon: const Icon(
                     Icons.calendar_today,
                     color: Colors.black54,
@@ -426,7 +433,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -434,7 +442,7 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
 
               const SizedBox(height: 24),
 
-              // --- GCASH PAYMENT SECTION ---
+              // GCASH PAYMENT SECTION
               const Text(
                 'GCASH PAYMENT',
                 style: TextStyle(
@@ -459,17 +467,24 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
               const SizedBox(height: 6),
 
               TextField(
-                controller: _gcashAccountController,
-                keyboardType: TextInputType.phone,
-                style: const TextStyle(color: Colors.black87),
+                controller:
+                    _gcashAccountController,
+                keyboardType:
+                    TextInputType.phone,
+                style: const TextStyle(
+                  color: Colors.black87,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'e.g., 09123456789',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
+                  hintText:
+                      'e.g., 09123456789',
+                  hintStyle: const TextStyle(
+                    color: Colors.black38,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -489,20 +504,27 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
               const SizedBox(height: 6),
 
               TextField(
-                controller: _gcashPinController,
+                controller:
+                    _gcashPinController,
                 obscureText: true,
-                keyboardType: TextInputType.number,
+                keyboardType:
+                    TextInputType.number,
                 maxLength: 6,
-                style: const TextStyle(color: Colors.black87),
+                style: const TextStyle(
+                  color: Colors.black87,
+                ),
                 decoration: InputDecoration(
-                  hintText: 'Enter 4 or 6-digit PIN',
-                  hintStyle:
-                      const TextStyle(color: Colors.black38),
+                  hintText:
+                      'Enter 4 or 6-digit PIN',
+                  hintStyle: const TextStyle(
+                    color: Colors.black38,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
                   counterText: '',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius:
+                        BorderRadius.circular(12),
                     borderSide: BorderSide.none,
                   ),
                 ),
@@ -516,9 +538,12 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                 height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF133254),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                    backgroundColor:
+                        const Color(0xFF133254),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(14),
                     ),
                   ),
                   onPressed: () {
@@ -527,46 +552,75 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                       MaterialPageRoute(
                         builder: (context) =>
                             ConfirmAppDriverScreen(
-                          driverId: widget.driverId,
+                          driverId:
+                              widget.driverId,
 
                           // Actual DateTime for Laravel
-                          preferredDateTime: _selectedDateTime,
+                          preferredDateTime:
+                              _selectedDateTime,
 
+                          // Truck Used Plate
+                          // is now the appointment
+                          // plate number.
                           truckUsed:
-                              _truckUsedPlateController.text.isEmpty
+                              _truckUsedPlateController
+                                      .text
+                                      .isEmpty
                                   ? 'Not specified'
-                                  : _truckUsedPlateController.text,
+                                  : _truckUsedPlateController
+                                      .text,
 
                           comingFrom:
-                              _comingFromController.text.isEmpty
+                              _comingFromController
+                                      .text
+                                      .isEmpty
                                   ? 'Not specified'
-                                  : _comingFromController.text,
+                                  : _comingFromController
+                                      .text,
 
-                          livestockLoad: selectedLoadText,
+                          livestockLoad:
+                              selectedLoadText,
 
+                          // Use the truck used plate
+                          // as the plate number.
                           plateNumber:
-                              _plateNumberController.text.isEmpty
+                              _truckUsedPlateController
+                                      .text
+                                      .isEmpty
                                   ? 'Not specified'
-                                  : _plateNumberController.text,
+                                  : _truckUsedPlateController
+                                      .text,
 
                           // Display version
                           preferredTime:
-                              _preferredTimeController.text.isEmpty
+                              _preferredTimeController
+                                      .text
+                                      .isEmpty
                                   ? 'Not specified'
-                                  : _preferredTimeController.text,
+                                  : _preferredTimeController
+                                      .text,
 
                           ewalletAccount:
-                              _gcashAccountController.text.isEmpty
+                              _gcashAccountController
+                                      .text
+                                      .isEmpty
                                   ? 'Not specified'
-                                  : _gcashAccountController.text,
+                                  : _gcashAccountController
+                                      .text,
 
-                          // PIN is only displayed masked.
-                          // It will NOT be sent to Laravel.
+                          // PIN is only displayed
+                          // masked.
+                          // It will NOT be sent
+                          // to Laravel.
                           ewalletPin:
-                              _gcashPinController.text.isEmpty
+                              _gcashPinController
+                                      .text
+                                      .isEmpty
                                   ? '****'
                                   : '•' *
-                                      _gcashPinController.text.length,
+                                      _gcashPinController
+                                          .text
+                                          .length,
                         ),
                       ),
                     );
@@ -575,7 +629,8 @@ class _SetAppDriverScreenState extends State<SetAppDriverScreen> {
                     'REVIEW APPOINTMENT',
                     style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                       letterSpacing: 1,
                     ),
                   ),

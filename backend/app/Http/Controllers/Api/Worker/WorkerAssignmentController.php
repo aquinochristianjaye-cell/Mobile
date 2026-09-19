@@ -71,6 +71,12 @@ class WorkerAssignmentController extends Controller
         $assignment->status = 'washing';
         $assignment->save();
 
+        // Update the appointment status so the Driver UI
+        // knows that washing has started.
+        $assignment->appointment->update([
+            'status' => 'washing',
+        ]);
+
         return response()->json([
             'message' => 'Washing started.',
             'assignment' => $assignment->load([
@@ -103,9 +109,16 @@ class WorkerAssignmentController extends Controller
         $assignment->status = 'completed';
         $assignment->save();
 
+        // Update the appointment status so the Driver UI
+        // knows that washing has been completed.
+        $assignment->appointment->update([
+            'status' => 'completed',
+        ]);
+
         return response()->json([
             'message' => 'Washing completed.',
             'assignment' => $assignment,
         ], 200);
     }
 }
+

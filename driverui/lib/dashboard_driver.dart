@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -36,11 +37,102 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
   bool isLoadingWashes = true;
 
+  // Current appointment status
+  String currentStatus = 'arrived';
+
+  // Used to check the appointment status regularly
+  Timer? _statusTimer;
+
   @override
   void initState() {
     super.initState();
+
     _loadCompletedWashes();
+
+    if (widget.appointmentId != null) {
+      _loadAppointmentStatus();
+
+      _statusTimer = Timer.periodic(
+        const Duration(seconds: 3),
+        (_) {
+          _loadAppointmentStatus();
+        },
+      );
+    }
   }
+
+  @override
+  void dispose() {
+    _statusTimer?.cancel();
+    super.dispose();
+  }
+
+  // ----------------------------------------------------------
+  // LOAD CURRENT APPOINTMENT STATUS
+  // ----------------------------------------------------------
+
+  Future<void> _loadAppointmentStatus() async {
+    if (widget.appointmentId == null) {
+      return;
+    }
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          'http://127.0.0.1:8000/api/driver/${widget.driverId}/appointments/${widget.appointmentId}',
+        ),
+        headers: {
+          'Accept': 'application/json',
+        },
+      );
+
+      if (response.statusCode != 200) {
+        return;
+      }
+
+      final data = jsonDecode(response.body);
+
+      final appointment =
+          data['appointment'];
+
+      if (appointment == null) {
+        return;
+      }
+
+      final String status =
+          appointment['status']?.toString() ?? '';
+
+      if (!mounted) return;
+
+      // Worker finished the wash
+      if (status == 'completed') {
+        setState(() {
+          currentStatus = 'completed';
+        });
+
+        _statusTimer?.cancel();
+
+        await _loadCompletedWashes();
+
+        if (!mounted) return;
+
+        setState(() {});
+        return;
+      }
+
+      // Appointment is still active
+      setState(() {
+        currentStatus = status;
+      });
+    } catch (e) {
+      // Ignore temporary connection errors.
+      // The next timer cycle will try again.
+    }
+  }
+
+  // ----------------------------------------------------------
+  // LOAD COMPLETED WASHES
+  // ----------------------------------------------------------
 
   Future<void> _loadCompletedWashes() async {
     try {
@@ -82,10 +174,52 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     }
   }
 
+  // ----------------------------------------------------------
+  // CURRENT UNIT STATUS TEXT
+  // ----------------------------------------------------------
+
+  String get _currentStatusText {
+    switch (currentStatus) {
+      case 'arrived':
+        return 'Ready to wash';
+
+      case 'washing':
+        return 'Washing';
+
+      case 'assigned':
+        return 'Driving';
+
+      default:
+        return 'Ready to wash';
+    }
+  }
+
+  // ----------------------------------------------------------
+  // CURRENT UNIT STATUS COLOR
+  // ----------------------------------------------------------
+
+  Color get _currentStatusColor {
+    switch (currentStatus) {
+      case 'arrived':
+        return Colors.green.shade700;
+
+      case 'washing':
+        return Colors.blue.shade700;
+
+      case 'assigned':
+        return Colors.orange.shade700;
+
+      default:
+        return Colors.green.shade700;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // The Current Unit only appears when an appointment exists.
-    final bool hasAppointment = widget.appointmentId != null;
+    // Current Unit disappears after the worker finishes.
+    final bool hasAppointment =
+        widget.appointmentId != null &&
+        currentStatus != 'completed';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B131E),
@@ -93,9 +227,13 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
+              // ------------------------------------------------
               // HEADER
+              // ------------------------------------------------
+
               Row(
                 mainAxisAlignment:
                     MainAxisAlignment.spaceBetween,
@@ -153,12 +291,16 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                 ],
               ),
 
+              // ------------------------------------------------
               // CURRENT UNIT
+              // ------------------------------------------------
+
               if (hasAppointment) ...[
                 const SizedBox(height: 24),
 
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding:
+                      const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color:
                         Colors.white.withOpacity(0.12),
@@ -182,34 +324,43 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
                       Row(
                         mainAxisAlignment:
-                            MainAxisAlignment.spaceBetween,
+                            MainAxisAlignment
+                                .spaceBetween,
                         children: [
                           Text(
                             '#${widget.plateNumber ?? 'Unknown'}',
-                            style: const TextStyle(
+                            style:
+                                const TextStyle(
                               color: Colors.white,
                               fontSize: 22,
-                              fontWeight: FontWeight.bold,
+                              fontWeight:
+                                  FontWeight.bold,
                             ),
                           ),
 
                           Container(
                             padding:
-                                const EdgeInsets.symmetric(
+                                const EdgeInsets
+                                    .symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade700,
+                            decoration:
+                                BoxDecoration(
+                              color:
+                                  _currentStatusColor,
                               borderRadius:
-                                  BorderRadius.circular(20),
+                                  BorderRadius
+                                      .circular(20),
                             ),
-                            child: const Text(
-                              'Driving',
-                              style: TextStyle(
+                            child: Text(
+                              _currentStatusText,
+                              style:
+                                  const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight:
+                                    FontWeight.bold,
                               ),
                             ),
                           ),
@@ -221,7 +372,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                       Text(
                         widget.comingFrom ??
                             'Location not specified',
-                        style: const TextStyle(
+                        style:
+                            const TextStyle(
                           color: Colors.white70,
                           fontSize: 13,
                         ),
@@ -231,7 +383,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
                       Text(
                         '${widget.livestockLoad} • ${widget.preferredTime}',
-                        style: const TextStyle(
+                        style:
+                            const TextStyle(
                           color: Colors.white54,
                           fontSize: 12,
                         ),
@@ -243,20 +396,27 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
               const SizedBox(height: 20),
 
+              // ------------------------------------------------
               // NEW APPOINTMENT BUTTON
+              // ------------------------------------------------
+
               SizedBox(
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
+                  style:
+                      ElevatedButton.styleFrom(
                     backgroundColor:
                         const Color(0xFF162A45),
-                    shape: RoundedRectangleBorder(
+                    shape:
+                        RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius.circular(12),
+                          BorderRadius.circular(
+                        12,
+                      ),
                       side: BorderSide(
-                        color:
-                            Colors.white.withOpacity(0.2),
+                        color: Colors.white
+                            .withOpacity(0.2),
                       ),
                     ),
                   ),
@@ -266,7 +426,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                       MaterialPageRoute(
                         builder: (context) =>
                             SetAppDriverScreen(
-                          driverId: widget.driverId,
+                          driverId:
+                              widget.driverId,
                         ),
                       ),
                     );
@@ -275,7 +436,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                     'SET NEW WASH APPOINTMENT',
                     style: TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                      fontWeight:
+                          FontWeight.bold,
                       fontSize: 13,
                       letterSpacing: 1,
                     ),
@@ -285,7 +447,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
               const SizedBox(height: 28),
 
+              // ------------------------------------------------
               // RECENT WASHES
+              // ------------------------------------------------
+
               const Text(
                 'RECENT WASHES',
                 style: TextStyle(
@@ -307,6 +472,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     );
   }
 
+  // ----------------------------------------------------------
+  // RECENT WASHES LIST
+  // ----------------------------------------------------------
+
   Widget _buildRecentWashes() {
     if (isLoadingWashes) {
       return const Center(
@@ -317,13 +486,21 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     }
 
     if (completedAppointments.isEmpty) {
-      return const Center(
-        child: Text(
-          'No completed washes yet.',
-          style: TextStyle(
-            color: Colors.white54,
-            fontSize: 13,
-          ),
+      return RefreshIndicator(
+        onRefresh: _loadCompletedWashes,
+        child: ListView(
+          children: const [
+            SizedBox(height: 100),
+            Center(
+              child: Text(
+                'No completed washes yet.',
+                style: TextStyle(
+                  color: Colors.white54,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -331,24 +508,30 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     return RefreshIndicator(
       onRefresh: _loadCompletedWashes,
       child: ListView.separated(
-        itemCount: completedAppointments.length,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: 12),
-        itemBuilder: (context, index) {
+        itemCount:
+            completedAppointments.length,
+        separatorBuilder:
+            (context, index) =>
+                const SizedBox(height: 12),
+        itemBuilder:
+            (context, index) {
           final appointment =
               completedAppointments[index];
 
           final String plate =
-              appointment['truck_plate']?.toString() ??
+              appointment['truck_plate']
+                      ?.toString() ??
                   'Unknown';
 
           final String comingFrom =
-              appointment['coming_from']?.toString() ??
+              appointment['coming_from']
+                      ?.toString() ??
                   'Location not specified';
 
           final String date =
               _formatDate(
-            appointment['preferred_datetime'],
+            appointment[
+                'preferred_datetime'],
           );
 
           return _buildDeliveryItem(
@@ -360,13 +543,18 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     );
   }
 
+  // ----------------------------------------------------------
+  // FORMAT DATE
+  // ----------------------------------------------------------
+
   String _formatDate(dynamic value) {
     if (value == null) {
       return 'Date not specified';
     }
 
     try {
-      final date = DateTime.parse(value.toString());
+      final date =
+          DateTime.parse(value.toString());
 
       const months = [
         'Jan',
@@ -389,15 +577,22 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     }
   }
 
+  // ----------------------------------------------------------
+  // RECENT WASH ITEM
+  // ----------------------------------------------------------
+
   Widget _buildDeliveryItem(
     String unit,
     String details,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:
+          const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(16),
+        color:
+            Colors.white.withOpacity(0.08),
+        borderRadius:
+            BorderRadius.circular(16),
       ),
       child: Row(
         mainAxisAlignment:
@@ -410,10 +605,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
               children: [
                 Text(
                   unit,
-                  style: const TextStyle(
+                  style:
+                      const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
 
@@ -421,11 +618,13 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
                 Text(
                   details,
-                  style: const TextStyle(
+                  style:
+                      const TextStyle(
                     color: Colors.white54,
                     fontSize: 12,
                   ),
-                  overflow: TextOverflow.ellipsis,
+                  overflow:
+                      TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -439,17 +638,21 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
               horizontal: 10,
               vertical: 4,
             ),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD4EDDA),
+            decoration:
+                BoxDecoration(
+              color:
+                  const Color(0xFFD4EDDA),
               borderRadius:
                   BorderRadius.circular(20),
             ),
             child: const Text(
               'Washed',
               style: TextStyle(
-                color: Color(0xFF155724),
+                color:
+                    Color(0xFF155724),
                 fontSize: 11,
-                fontWeight: FontWeight.bold,
+                fontWeight:
+                    FontWeight.bold,
               ),
             ),
           ),
@@ -458,3 +661,4 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     );
   }
 }
+
