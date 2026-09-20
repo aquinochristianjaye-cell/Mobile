@@ -43,6 +43,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // Used to check the appointment status regularly
   Timer? _statusTimer;
 
+  // Prevent an older completed-washes request
+  // from overwriting a newer result.
+  int _completedLoadVersion = 0;
+
   @override
   void initState() {
     super.initState();
@@ -92,8 +96,7 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
       final data = jsonDecode(response.body);
 
-      final appointment =
-          data['appointment'];
+      final appointment = data['appointment'];
 
       if (appointment == null) {
         return;
@@ -104,23 +107,54 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
       if (!mounted) return;
 
-      // Worker finished the wash
+      // ------------------------------------------------------
+      // WORKER FINISHED THE WASH
+      // ------------------------------------------------------
+
       if (status == 'completed') {
         setState(() {
           currentStatus = 'completed';
         });
 
+        // Stop checking this appointment because it is finished.
         _statusTimer?.cancel();
 
+        // Load the newly completed appointment.
         await _loadCompletedWashes();
 
-        if (!mounted) return;
+        // If the completed appointment was not returned yet,
+        // add the current appointment information to
+        // Recent Washes.
+        if (mounted &&
+            widget.appointmentId != null &&
+            !completedAppointments.any(
+              (appointment) =>
+                  appointment['id'] ==
+                  widget.appointmentId,
+            )) {
+          setState(() {
+            completedAppointments.insert(0, {
+              'id': widget.appointmentId,
+              'driver_id': widget.driverId,
+              'truck_plate': widget.plateNumber,
+              'livestock_load': widget.livestockLoad,
+              'preferred_datetime':
+                  widget.preferredTime,
+              'coming_from': widget.comingFrom,
+              'status': 'completed',
+            });
 
-        setState(() {});
+            isLoadingWashes = false;
+          });
+        }
+
         return;
       }
 
-      // Appointment is still active
+      // ------------------------------------------------------
+      // APPOINTMENT IS STILL ACTIVE
+      // ------------------------------------------------------
+
       setState(() {
         currentStatus = status;
       });
@@ -135,6 +169,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // ----------------------------------------------------------
 
   Future<void> _loadCompletedWashes() async {
+    // Give this request a unique version number.
+    final int requestVersion =
+        ++_completedLoadVersion;
+
     try {
       final response = await http.get(
         Uri.parse(
@@ -144,6 +182,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           'Accept': 'application/json',
         },
       );
+
+      // If another newer request was started while this
+      // request was running, ignore this older response.
+      if (requestVersion != _completedLoadVersion) {
+        return;
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -166,6 +210,11 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         });
       }
     } catch (e) {
+      // Ignore an old request if a newer request exists.
+      if (requestVersion != _completedLoadVersion) {
+        return;
+      }
+
       if (!mounted) return;
 
       setState(() {
