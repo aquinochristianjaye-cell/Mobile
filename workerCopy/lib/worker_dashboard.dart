@@ -264,17 +264,28 @@ class _WorkerDashboardScreenState
     }
   }
 
-  void _openPowerSpray() {
-    Navigator.push(
+  // Opens the update sheet right on the dashboard (no extra page).
+  Future<void> _openSupplyUpdater() async {
+    final SupplyLevels? saved = await showSupplyUpdateSheet(
       context,
-      MaterialPageRoute(
-        builder: (context) => const PowerSprayScreen(),
-      ),
-    ).then((_) {
-      // Refresh immediately when returning
-      // from the Power Spray screen.
-      _loadSupplies();
+      foamWash: foamWashLevel,
+      disinfectant: disinfectantLevel,
+      water: waterLevel,
+    );
+
+    if (!mounted || saved == null) return;
+
+    // Show the new levels immediately...
+    setState(() {
+      foamWashLevel = saved.foamWash;
+      disinfectantLevel = saved.disinfectant;
+      waterLevel = saved.water;
     });
+
+    showAppSnack(context, 'Supply levels updated.');
+
+    // ...then confirm with the server.
+    _loadSupplies();
   }
 
   // ============================================================
@@ -569,7 +580,7 @@ class _WorkerDashboardScreenState
       label: 'Update chemical and fluid levels',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: _openPowerSpray,
+        onTap: _openSupplyUpdater,
         child: SurfaceCard(
           child: Column(
             children: [

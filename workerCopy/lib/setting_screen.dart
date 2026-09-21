@@ -70,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
           const _Faq(
             question: 'How do I update chemical and water levels?',
             answer:
-                'Tap the levels card on the home screen, then Update levels. Move the sliders, or tap Full after a refill, and save.',
+                'Tap the levels card on the home screen. The update sheet opens right away. Move the sliders, or tap Full after a refill, then save.',
           ),
           const _Faq(
             question: 'I can\'t sign in.',

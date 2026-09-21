@@ -4,255 +4,247 @@ import 'app_theme.dart';
 import 'services/station_supply_service.dart';
 import 'widgets.dart';
 
-class PowerSprayScreen extends StatefulWidget {
-  const PowerSprayScreen({super.key});
+/// The three supply levels, 0 to 100.
+class SupplyLevels {
+  const SupplyLevels({
+    required this.foamWash,
+    required this.disinfectant,
+    required this.water,
+  });
 
-  @override
-  State<PowerSprayScreen> createState() => _PowerSprayScreenState();
+  final double foamWash;
+  final double disinfectant;
+  final double water;
 }
 
-class _PowerSprayScreenState extends State<PowerSprayScreen> {
-  // Shared station supply levels
-  double foamWashLevel = 0;
-  double disinfectantLevel = 0;
-  double waterLevel = 0;
+/// Opens the "Update station supplies" sheet right where you are (the
+/// dashboard), with no extra page in between.
+///
+/// Returns the saved levels, or null if the worker cancelled / dismissed it.
+Future<SupplyLevels?> showSupplyUpdateSheet(
+  BuildContext context, {
+  required double foamWash,
+  required double disinfectant,
+  required double water,
+}) {
+  return showModalBottomSheet<SupplyLevels>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (BuildContext modalContext) {
+      return _SupplyUpdateSheet(
+        foamWash: foamWash,
+        disinfectant: disinfectant,
+        water: water,
+      );
+    },
+  );
+}
 
-  bool isLoading = true;
-  bool isSaving = false;
+class _SupplyUpdateSheet extends StatefulWidget {
+  const _SupplyUpdateSheet({
+    required this.foamWash,
+    required this.disinfectant,
+    required this.water,
+  });
+
+  final double foamWash;
+  final double disinfectant;
+  final double water;
 
   @override
-  void initState() {
-    super.initState();
-    _loadSupplies();
-  }
+  State<_SupplyUpdateSheet> createState() => _SupplyUpdateSheetState();
+}
 
-  // Load supply levels from Laravel/MySQL
-  Future<void> _loadSupplies() async {
+class _SupplyUpdateSheetState extends State<_SupplyUpdateSheet> {
+  late double _foamWash = widget.foamWash;
+  late double _disinfectant = widget.disinfectant;
+  late double _water = widget.water;
+
+  bool _isSaving = false;
+
+  // Shown inside the sheet, because a snackbar would hide behind it.
+  String? _error;
+
+  Future<void> _save() async {
+    if (_isSaving) return;
+
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+
     try {
-      final supplies =
-          await StationSupplyService.getSupplies();
+      await StationSupplyService.updateSupplies(
+        foamWash: _foamWash,
+        disinfectant: _disinfectant,
+        water: _water,
+      );
 
       if (!mounted) return;
 
-      setState(() {
-        foamWashLevel =
-            supplies['Foam Wash'] ?? 0;
-
-        disinfectantLevel =
-            supplies['Disinfectant'] ?? 0;
-
-        waterLevel =
-            supplies['Water'] ?? 0;
-
-        isLoading = false;
-      });
+      Navigator.pop(
+        context,
+        SupplyLevels(
+          foamWash: _foamWash,
+          disinfectant: _disinfectant,
+          water: _water,
+        ),
+      );
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
-        isLoading = false;
+        _isSaving = false;
+        _error = e.toString().replaceFirst('Exception: ', '');
       });
-
-      showAppSnack(
-        context,
-        'Couldn\'t load supply levels. Pull down to try again.',
-        error: true,
-      );
     }
   }
 
-  void _showUpdateModal() {
-    double tempFoamWash = foamWashLevel;
-    double tempDisinfectant = disinfectantLevel;
-    double tempWater = waterLevel;
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final t = context.t;
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext modalContext) {
-        return StatefulBuilder(
-          builder: (
-            BuildContext sheetContext,
-            StateSetter setModalState,
-          ) {
-            final c = sheetContext.c;
-            final t = sheetContext.t;
-
-            return Container(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 12,
-                bottom: MediaQuery.of(modalContext).viewInsets.bottom + 20,
-              ),
-              decoration: BoxDecoration(
-                color: c.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(26),
-                ),
-                border: Border(top: BorderSide(color: c.line)),
-              ),
-              child: SafeArea(
-                top: false,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Handle Bar
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            color: c.line,
-                            borderRadius: BorderRadius.circular(3),
-                          ),
-                        ),
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 12,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+      ),
+      decoration: BoxDecoration(
+        color: c.surface,
+        borderRadius: const BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
+        border: Border(top: BorderSide(color: c.line)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle Bar
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: c.line,
+                        borderRadius: BorderRadius.circular(3),
                       ),
+                    ),
+                  ),
 
-                      const SizedBox(height: 18),
+                  const SizedBox(height: 18),
 
-                      Text('Update station supplies', style: t.title),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Set each level to what you see in the tank.',
-                        style: t.caption.copyWith(fontSize: 14),
+                  Text('Update station supplies', style: t.title),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Set each level to what you see in the tank.',
+                    style: t.caption.copyWith(fontSize: 14),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  _sliderRow(
+                    c,
+                    t,
+                    'Foam wash',
+                    _foamWash,
+                    (val) => setState(() => _foamWash = val),
+                  ),
+
+                  _sliderRow(
+                    c,
+                    t,
+                    'Disinfectant',
+                    _disinfectant,
+                    (val) => setState(() => _disinfectant = val),
+                  ),
+
+                  _sliderRow(
+                    c,
+                    t,
+                    'Water',
+                    _water,
+                    (val) => setState(() => _water = val),
+                  ),
+
+                  if (_error != null) ...[
+                    const SizedBox(height: 2),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: c.dangerSoft,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-
-                      const SizedBox(height: 20),
-
-                      // Foam Wash
-                      _buildSliderRow(
-                        c,
-                        t,
-                        'Foam wash',
-                        tempFoamWash,
-                        (val) {
-                          setModalState(() {
-                            tempFoamWash = val;
-                          });
-                        },
-                      ),
-
-                      // Disinfectant
-                      _buildSliderRow(
-                        c,
-                        t,
-                        'Disinfectant',
-                        tempDisinfectant,
-                        (val) {
-                          setModalState(() {
-                            tempDisinfectant = val;
-                          });
-                        },
-                      ),
-
-                      // Water
-                      _buildSliderRow(
-                        c,
-                        t,
-                        'Water',
-                        tempWater,
-                        (val) {
-                          setModalState(() {
-                            tempWater = val;
-                          });
-                        },
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Buttons
-                      Row(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // CANCEL
+                          Icon(Icons.error_outline_rounded, size: 20, color: c.danger),
+                          const SizedBox(width: 10),
                           Expanded(
-                            child: SecondaryButton(
-                              label: 'Cancel',
-                              onPressed: () {
-                                Navigator.pop(modalContext);
-                              },
-                            ),
-                          ),
-
-                          const SizedBox(width: 12),
-
-                          // SAVE UPDATE
-                          Expanded(
-                            child: PrimaryButton(
-                              label: 'Save levels',
-                              loading: isSaving,
-                              onPressed: isSaving
-                                  ? null
-                                  : () async {
-                                      setModalState(() {
-                                        isSaving = true;
-                                      });
-
-                                      try {
-                                        await StationSupplyService
-                                            .updateSupplies(
-                                          foamWash: tempFoamWash,
-                                          disinfectant: tempDisinfectant,
-                                          water: tempWater,
-                                        );
-
-                                        if (!mounted) {
-                                          return;
-                                        }
-
-                                        setState(() {
-                                          foamWashLevel = tempFoamWash;
-
-                                          disinfectantLevel = tempDisinfectant;
-
-                                          waterLevel = tempWater;
-
-                                          isSaving = false;
-                                        });
-
-                                        Navigator.pop(modalContext);
-
-                                        showAppSnack(
-                                          context,
-                                          'Supply levels updated.',
-                                        );
-                                      } catch (e) {
-                                        setModalState(() {
-                                          isSaving = false;
-                                        });
-
-                                        if (!mounted) {
-                                          return;
-                                        }
-
-                                        showAppSnack(
-                                          context,
-                                          e
-                                              .toString()
-                                              .replaceFirst('Exception: ', ''),
-                                          error: true,
-                                        );
-                                      }
-                                    },
+                            child: Text(
+                              _error!,
+                              style: t.caption.copyWith(
+                                color: c.danger,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
                       ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 14),
+
+                  // Buttons
+                  Row(
+                    children: [
+                      // CANCEL
+                      Expanded(
+                        child: SecondaryButton(
+                          label: 'Cancel',
+                          onPressed: _isSaving
+                              ? null
+                              : () {
+                                  Navigator.pop(context);
+                                },
+                        ),
+                      ),
+
+                      const SizedBox(width: 12),
+
+                      // SAVE UPDATE
+                      Expanded(
+                        child: PrimaryButton(
+                          label: 'Save levels',
+                          loading: _isSaving,
+                          onPressed: _isSaving ? null : _save,
+                        ),
+                      ),
                     ],
                   ),
-                ),
+                ],
               ),
-            );
-          },
-        );
-      },
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildSliderRow(
+  Widget _sliderRow(
     AppColors c,
     AppType t,
     String label,
@@ -326,99 +318,9 @@ class _PowerSprayScreenState extends State<PowerSprayScreen> {
               min: 0,
               max: 100,
               divisions: 100,
-              onChanged: onChanged,
+              onChanged: _isSaving ? null : onChanged,
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final c = context.c;
-    final t = context.t;
-
-    return Scaffold(
-      backgroundColor: c.bg,
-      bottomNavigationBar: BottomBar(
-        child: PrimaryButton(
-          label: 'Update levels',
-          icon: Icons.tune_rounded,
-          onPressed: isLoading
-              ? null
-              : () {
-                  _showUpdateModal();
-                },
-        ),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: ContentWidth(
-          child: RefreshIndicator(
-            onRefresh: _loadSupplies,
-            color: c.accent,
-            backgroundColor: c.surface,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
-              children: [
-                // Header
-                ScreenHeader(
-                  eyebrow: 'Station supplies',
-                  title: 'Power spray station',
-                  onBack: () {
-                    Navigator.pop(context);
-                  },
-                  trailing: const WorkerAvatar(),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Levels Card
-                _buildStationCard(),
-
-                const SizedBox(height: 14),
-
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.info_outline_rounded, size: 18, color: c.textMuted),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Bars turn amber at 50% and red at 20%.',
-                        style: t.caption,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStationCard() {
-    if (isLoading) {
-      return const SkeletonBlock(height: 290, radius: 20);
-    }
-
-    return SurfaceCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          SupplyGauge(label: 'Foam wash', level: foamWashLevel),
-
-          const SizedBox(height: 24),
-
-          SupplyGauge(label: 'Disinfectant', level: disinfectantLevel),
-
-          const SizedBox(height: 24),
-
-          SupplyGauge(label: 'Water', level: waterLevel),
         ],
       ),
     );
