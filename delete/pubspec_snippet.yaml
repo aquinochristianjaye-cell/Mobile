@@ -1,0 +1,16 @@
+# Merge this into your existing pubspec.yaml.
+# No new packages are needed: http and qr_flutter are already in your project.
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Barlow
+      fonts:
+        - asset: assets/fonts/Barlow-Regular.ttf
+        - asset: assets/fonts/Barlow-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Barlow-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Barlow-Bold.ttf
+          weight: 700
