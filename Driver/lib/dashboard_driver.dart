@@ -85,7 +85,7 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://127.0.0.1:8000/api/driver/${widget.driverId}/appointments/${widget.appointmentId}',
+          'http://192.168.100.236:8000/api/driver/${widget.driverId}/appointments/${widget.appointmentId}',
         ),
         headers: {
           'Accept': 'application/json',
@@ -129,7 +129,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         if (mounted &&
             widget.appointmentId != null &&
             !completedAppointments.any(
-              (appointment) => appointment['id'] == widget.appointmentId,
+              (appointment) =>
+                  appointment['id'] == widget.appointmentId,
             )) {
           setState(() {
             completedAppointments.insert(0, {
@@ -153,9 +154,11 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
       // APPOINTMENT IS STILL ACTIVE
       // ------------------------------------------------------
 
-      setState(() {
-        currentStatus = status;
-      });
+      if (currentStatus != status) {
+        setState(() {
+          currentStatus = status;
+        });
+      }
     } catch (e) {
       // Ignore temporary connection errors.
       // The next timer cycle will try again.
@@ -221,9 +224,11 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
   // Pull-to-refresh: reload the list and, if a wash is active, its status.
   Future<void> _refreshAll() async {
-    if (widget.appointmentId != null && currentStatus != 'completed') {
+    if (widget.appointmentId != null &&
+        currentStatus != 'completed') {
       await _loadAppointmentStatus();
     }
+
     await _loadCompletedWashes();
   }
 
@@ -252,6 +257,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         return 'Washing';
       case 'assigned':
         return 'On the way';
+      case 'completed':
+        return 'Completed';
       case 'arrived':
       default:
         return 'Ready to wash';
@@ -264,6 +271,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         return 'Your truck is being washed. This screen updates when it\'s done.';
       case 'assigned':
         return 'Head to the station and show your gate pass when you arrive.';
+      case 'completed':
+        return 'Your wash is complete. Your truck is clean and ready to go.';
       case 'arrived':
       default:
         return 'You\'re checked in. A worker will start your wash shortly.';
@@ -276,6 +285,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         return c.accent;
       case 'assigned':
         return c.signal;
+      case 'completed':
+        return c.success;
       case 'arrived':
       default:
         return c.success;
@@ -288,6 +299,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         return c.accentSoft;
       case 'assigned':
         return c.signalSoft;
+      case 'completed':
+        return c.successSoft;
       case 'arrived':
       default:
         return c.successSoft;
@@ -339,9 +352,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
     // Current wash disappears after the worker finishes.
     final bool hasAppointment =
-        widget.appointmentId != null && currentStatus != 'completed';
+        widget.appointmentId != null &&
+        currentStatus != 'completed';
+
     final bool justCompleted =
-        widget.appointmentId != null && currentStatus == 'completed';
+        widget.appointmentId != null &&
+        currentStatus == 'completed';
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -377,8 +393,14 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('${DriverSession.greeting},', style: t.bodyMuted),
-                        Text(DriverSession.firstName, style: t.display),
+                        Text(
+                          '${DriverSession.greeting},',
+                          style: t.bodyMuted,
+                        ),
+                        Text(
+                          DriverSession.firstName,
+                          style: t.display,
+                        ),
                       ],
                     ),
                   ),
@@ -395,7 +417,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
               if (justCompleted) _buildCompletedBanner(c, t),
 
-              if (!hasAppointment && !justCompleted) _buildNoWashCard(c, t),
+              if (!hasAppointment && !justCompleted)
+                _buildNoWashCard(c, t),
 
               const SizedBox(height: 32),
 
@@ -445,7 +468,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: PlateTag(widget.plateNumber ?? 'Unknown', fontSize: 30),
+                  child: PlateTag(
+                    widget.plateNumber ?? 'Unknown',
+                    fontSize: 30,
+                  ),
                 ),
               ),
             ],
@@ -455,14 +481,19 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
           _InfoLine(
             icon: Icons.location_on_outlined,
-            text: (widget.comingFrom == null || widget.comingFrom!.isEmpty)
-                ? 'Location not specified'
-                : 'From ${widget.comingFrom}',
+            text:
+                (widget.comingFrom == null ||
+                        widget.comingFrom!.isEmpty)
+                    ? 'Location not specified'
+                    : 'From ${widget.comingFrom}',
           ),
+
           const SizedBox(height: 8),
+
           _InfoLine(
             icon: Icons.event_outlined,
-            text: '${widget.livestockLoad ?? ''}  ·  ${widget.preferredTime ?? ''}',
+            text:
+                '${widget.livestockLoad ?? ''}  ·  ${widget.preferredTime ?? ''}',
           ),
 
           const SizedBox(height: 24),
@@ -471,7 +502,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
           const SizedBox(height: 18),
 
-          Text(_statusHint, style: t.bodyMuted.copyWith(fontSize: 15)),
+          Text(
+            _statusHint,
+            style: t.bodyMuted.copyWith(fontSize: 15),
+          ),
 
           const SizedBox(height: 18),
 
@@ -494,15 +528,27 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           Container(
             width: 46,
             height: 46,
-            decoration: BoxDecoration(color: c.success, shape: BoxShape.circle),
-            child: Icon(Icons.check_rounded, color: c.bg, size: 28),
+            decoration: BoxDecoration(
+              color: c.success,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: c.bg,
+              size: 28,
+            ),
           ),
+
           const SizedBox(width: 14),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Wash complete', style: t.heading),
+                Text(
+                  'Wash complete',
+                  style: t.heading,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${widget.plateNumber ?? 'Your truck'} is clean and ready to go.',
@@ -523,15 +569,27 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           Container(
             width: 46,
             height: 46,
-            decoration: BoxDecoration(color: c.accentSoft, shape: BoxShape.circle),
-            child: Icon(Icons.local_shipping_outlined, color: c.accent, size: 24),
+            decoration: BoxDecoration(
+              color: c.accentSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_shipping_outlined,
+              color: c.accent,
+              size: 24,
+            ),
           ),
+
           const SizedBox(width: 14),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('No wash booked', style: t.heading),
+                Text(
+                  'No wash booked',
+                  style: t.heading,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   'Book a slot before you head to the station.',
@@ -577,16 +635,24 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
     return Column(
       children: completedAppointments.map((appointment) {
-        final String plate = appointment['truck_plate']?.toString() ?? 'Unknown';
+        final String plate =
+            appointment['truck_plate']?.toString() ?? 'Unknown';
 
         final String comingFrom =
-            appointment['coming_from']?.toString() ?? 'Location not specified';
+            appointment['coming_from']?.toString() ??
+            'Location not specified';
 
-        final String date = _formatDate(appointment['preferred_datetime']);
+        final String date =
+            _formatDate(appointment['preferred_datetime']);
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _buildWashTile(c, t, plate, '$date  ·  $comingFrom'),
+          child: _buildWashTile(
+            c,
+            t,
+            plate,
+            '$date  ·  $comingFrom',
+          ),
         );
       }).toList(),
     );
@@ -629,7 +695,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // RECENT WASH ITEM
   // ----------------------------------------------------------
 
-  Widget _buildWashTile(AppColors c, AppType t, String plate, String details) {
+  Widget _buildWashTile(
+    AppColors c,
+    AppType t,
+    String plate,
+    String details,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -642,19 +713,32 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: c.successSoft, shape: BoxShape.circle),
-            child: Icon(Icons.local_car_wash_rounded, color: c.success, size: 23),
+            decoration: BoxDecoration(
+              color: c.successSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_car_wash_rounded,
+              color: c.success,
+              size: 23,
+            ),
           ),
+
           const SizedBox(width: 14),
+
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   plate.toUpperCase(),
-                  style: t.heading.copyWith(letterSpacing: 1.5),
+                  style: t.heading.copyWith(
+                    letterSpacing: 1.5,
+                  ),
                 ),
+
                 const SizedBox(height: 3),
+
                 Text(
                   details,
                   style: t.caption,
@@ -664,7 +748,9 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
               ],
             ),
           ),
+
           const SizedBox(width: 10),
+
           Pill(
             label: 'Washed',
             color: c.success,
@@ -678,7 +764,11 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 }
 
 class _InfoLine extends StatelessWidget {
-  const _InfoLine({required this.icon, required this.text});
+  const _InfoLine({
+    required this.icon,
+    required this.text,
+  });
+
   final IconData icon;
   final String text;
 
@@ -686,14 +776,24 @@ class _InfoLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Row(
       children: [
-        Icon(icon, size: 20, color: c.textMuted),
+        Icon(
+          icon,
+          size: 20,
+          color: c.textMuted,
+        ),
+
         const SizedBox(width: 10),
+
         Expanded(
           child: Text(
             text,
-            style: t.body.copyWith(fontSize: 15, color: c.text),
+            style: t.body.copyWith(
+              fontSize: 15,
+              color: c.text,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -702,3 +802,4 @@ class _InfoLine extends StatelessWidget {
     );
   }
 }
+
