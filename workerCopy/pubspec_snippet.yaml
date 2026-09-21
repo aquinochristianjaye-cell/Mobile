@@ -1,0 +1,27 @@
+# Merge this into your existing pubspec.yaml.
+#
+# STEP 1: packages. The worker app only needs http, which you already use.
+#         If flutter analyze says it's missing, run:
+#
+#     flutter pub add http
+#     flutter pub get
+#
+# STEP 2: register the Barlow font under the existing "flutter:" section.
+#         Copy the assets/fonts folder into your project first.
+#
+# NOTE: the profile photo asset (assets/cjaye.jpg) is no longer used by the
+#       Settings screen, so you can remove it from pubspec.yaml if you like.
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Barlow
+      fonts:
+        - asset: assets/fonts/Barlow-Regular.ttf
+        - asset: assets/fonts/Barlow-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Barlow-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Barlow-Bold.ttf
+          weight: 700
