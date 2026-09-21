@@ -88,7 +88,7 @@ class _SignUpDriverScreenState extends State<SignUpDriverScreen> {
       final fullName = '$firstName $lastName';
 
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/driver/register'),
+        Uri.parse('http://192.168.100.236:8000/api/driver/register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

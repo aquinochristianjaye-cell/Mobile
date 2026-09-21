@@ -32,3 +32,4 @@ backend/storage/framework/views/
 # Windows
 Thumbs.db
 Desktop.ini
+**/.kotlin/

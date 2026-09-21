@@ -53,7 +53,7 @@ class _CreateWorkerPageState extends State<CreateWorkerPage> {
     try {
       final response = await http.post(
         Uri.parse(
-          'http://127.0.0.1:8000/api/admin/workers',
+          'http://192.168.100.236:8000/api/admin/workers',
         ),
         headers: {
           'Accept': 'application/json',

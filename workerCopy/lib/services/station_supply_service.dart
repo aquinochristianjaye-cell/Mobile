@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class StationSupplyService {
   static const String baseUrl =
-      'http://127.0.0.1:8000/api';
+      'http://192.168.100.236:8000/api';
 
   // Get the current supply levels
   static Future<Map<String, double>> getSupplies() async {

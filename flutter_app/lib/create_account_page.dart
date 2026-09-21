@@ -70,7 +70,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/register'),
+        Uri.parse('http://192.168.100.236:8000/api/register'),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

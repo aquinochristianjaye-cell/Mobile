@@ -173,7 +173,7 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://127.0.0.1:8000/api/driver/${widget.driverId}/completed',
+          'http://192.168.100.236:8000/api/driver/${widget.driverId}/completed',
         ),
         headers: {
           'Accept': 'application/json',

@@ -66,7 +66,7 @@ class _ConfirmAppDriverScreenState extends State<ConfirmAppDriverScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/driver/appointments'),
+        Uri.parse('http://192.168.100.236:8000/api/driver/appointments'),
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',

@@ -51,7 +51,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     try {
       final response = await http.post(
         Uri.parse(
-          'http://127.0.0.1:8000/api/driver/check-in',
+          'http://192.168.100.236:8000/api/driver/check-in',
         ),
         headers: {
           'Accept': 'application/json',

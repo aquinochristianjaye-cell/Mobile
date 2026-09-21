@@ -3004,7 +3004,7 @@ class _AvailableWashersPanelState
                             final response =
                                 await http.post(
                               Uri.parse(
-                                'http://127.0.0.1:8000/api/admin/workers',
+                                'http://192.168.100.236:8000/api/admin/workers',
                               ),
                               headers: {
                                 'Accept':
@@ -3828,7 +3828,7 @@ class _DriversPanelState
                             final response =
                                 await http.post(
                               Uri.parse(
-                                'http://127.0.0.1:8000/api/admin/drivers',
+                                'http://192.168.100.236:8000/api/admin/drivers',
                               ),
                               headers: {
                                 'Accept':
