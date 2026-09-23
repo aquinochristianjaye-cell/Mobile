@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'services/notification_service.dart';
@@ -31,24 +32,54 @@ class AquinoWashApp extends StatelessWidget {
 /// ===================== COLORS =====================
 
 class AppColors {
-  static const bg = Color(0xFF101820);
+  static const bg = Color(0xFF0C1218);
   static const panel = Color(0xFF1A242C);
   static const panel2 = Color(0xFF212D36);
 
+  // Subtle diagonal gradient stops used inside panel/card surfaces
+  // to give them a soft sheen instead of a flat fill.
+  static const panelTop = Color(0xFF1E2932);
+  static const panelBottom = Color(0xFF161E25);
+
   static final line = Colors.white.withOpacity(0.07);
   static final lineStrong = Colors.white.withOpacity(0.14);
+  static final lineGlow = Colors.white.withOpacity(0.22);
 
   static const text = Color(0xFFEAF2F4);
   static const textDim = Color(0xFF93A6AE);
   static const textFaint = Color(0xFF5C707A);
 
   static const water = Color(0xFF2FB8D9);
+  static const waterDeep = Color(0xFF1C6E82);
   static const soap = Color(0xFF8C9CF5);
   static const disinfect = Color(0xFFC583F0);
 
   static const ok = Color(0xFF38D399);
   static const warn = Color(0xFFF5B94D);
   static const crit = Color(0xFFF0605C);
+
+  // Shared "elevation" shadow used behind cards for real depth.
+  static List<BoxShadow> elevation({double strength = 1}) => [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.28 * strength),
+          blurRadius: 22 * strength,
+          offset: Offset(0, 10 * strength),
+          spreadRadius: -6 * strength,
+        ),
+        BoxShadow(
+          color: Colors.black.withOpacity(0.18 * strength),
+          blurRadius: 6 * strength,
+          offset: Offset(0, 2 * strength),
+        ),
+      ];
+
+  static List<BoxShadow> glow(Color color, {double strength = 1}) => [
+        BoxShadow(
+          color: color.withOpacity(0.35 * strength),
+          blurRadius: 18 * strength,
+          spreadRadius: -4 * strength,
+        ),
+      ];
 }
 
 /// ===================== TEXT STYLES =====================
@@ -99,6 +130,152 @@ TextStyle _eyebrow() {
     fontWeight: FontWeight.w600,
     color: AppColors.textFaint,
   );
+}
+
+/// ===================== MICRO-ANIMATION HELPERS =====================
+
+/// A small glowing dot that gently pulses forever — used for "live" status
+/// indicators (system online, bay availability, etc).
+class _PulsingDot extends StatefulWidget {
+  final Color color;
+  final double size;
+
+  const _PulsingDot({
+    required this.color,
+    this.size = 6,
+  });
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final t = _controller.value;
+        return Stack(
+          alignment: Alignment.center,
+          clipBehavior: Clip.none,
+          children: [
+            // Outer breathing halo.
+            Container(
+              width: widget.size + (widget.size * 2.2 * t),
+              height: widget.size + (widget.size * 2.2 * t),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: widget.color.withOpacity(
+                  (0.35 * (1 - t)).clamp(0.0, 0.35),
+                ),
+              ),
+            ),
+            // Solid core.
+            Container(
+              width: widget.size,
+              height: widget.size,
+              decoration: BoxDecoration(
+                color: widget.color,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: widget.color.withOpacity(0.6),
+                    blurRadius: 6,
+                    spreadRadius: 0.5,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Wraps [child] with a gentle fade + rise-in animation that plays once
+/// when it first enters the tree. Reused by every panel so the dashboard
+/// feels like it's settling into place rather than popping in flatly.
+class _RiseIn extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+
+  const _RiseIn({
+    required this.child,
+    this.delay = Duration.zero,
+  });
+
+  @override
+  State<_RiseIn> createState() => _RiseInState();
+}
+
+class _RiseInState extends State<_RiseIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _rise;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 480),
+    );
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _rise = Tween<Offset>(
+      begin: const Offset(0, 0.035),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+
+    Future.delayed(widget.delay, () {
+      if (mounted) _controller.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fade,
+      child: SlideTransition(
+        position: _rise,
+        child: widget.child,
+      ),
+    );
+  }
 }
 
 /// ===================== DASHBOARD SCREEN =====================
@@ -344,49 +521,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0.8, -0.9),
-            radius: 1.1,
-            colors: [
-              Color(0x142FB8D9),
-              Colors.transparent,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.stretch,
-              children: [
-                _TopBar(
-                  timeStr: _timeStr,
-                  dateStr: _dateStr,
-                  notificationCount:
-                      _notifications.length,
-                  onNotificationTap:
-                      _showNotificationHistory,
+      body: Stack(
+        children: [
+          // Layer 1 — cyan glow, upper right.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(0.9, -0.95),
+                  radius: 1.15,
+                  colors: [
+                    Color(0x1F2FB8D9),
+                    Colors.transparent,
+                  ],
                 ),
-
-                const SizedBox(height: 16),
-
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide =
-                        constraints.maxWidth > 900;
-
-                    return isWide
-                        ? const _WideLayout()
-                        : const _NarrowLayout();
-                  },
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          // Layer 2 — violet glow, lower left, for a subtle two-tone mesh.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment(-1.0, 1.0),
+                  radius: 1.2,
+                  colors: [
+                    Color(0x148C9CF5),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          // Layer 3 — faint vignette to keep edges calm and add depth.
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.3,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.22),
+                  ],
+                  stops: const [0.7, 1.0],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment:
+                    CrossAxisAlignment.stretch,
+                children: [
+                  _TopBar(
+                    timeStr: _timeStr,
+                    dateStr: _dateStr,
+                    notificationCount:
+                        _notifications.length,
+                    onNotificationTap:
+                        _showNotificationHistory,
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide =
+                          constraints.maxWidth > 900;
+
+                      return isWide
+                          ? const _WideLayout()
+                          : const _NarrowLayout();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -495,14 +710,21 @@ class _TopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.line,
-          ),
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.panelTop.withOpacity(0.9),
+            AppColors.panelBottom.withOpacity(0.9),
+          ],
         ),
+        border: Border.all(
+          color: AppColors.line,
+        ),
+        boxShadow: AppColors.elevation(strength: 0.7),
       ),
       child: Wrap(
         alignment:
@@ -643,30 +865,38 @@ class _TopBar extends StatelessWidget {
                             BoxShape.circle,
                         border:
                             Border.all(
-                          color:
-                              AppColors
-                                  .lineStrong,
+                          color: notificationCount > 0
+                              ? AppColors.water.withOpacity(0.5)
+                              : AppColors.lineStrong,
                         ),
+                        boxShadow: notificationCount > 0
+                            ? AppColors.glow(
+                                AppColors.water,
+                                strength: 0.6,
+                              )
+                            : null,
                       ),
-                      child: const Icon(
-                        Icons
-                            .notifications_none,
+                      child: Icon(
+                        notificationCount > 0
+                            ? Icons.notifications
+                            : Icons.notifications_none,
                         size: 17,
-                        color:
-                            AppColors.textDim,
+                        color: notificationCount > 0
+                            ? AppColors.water
+                            : AppColors.textDim,
                       ),
                     ),
 
                     if (notificationCount >
                         0)
                       Positioned(
-                        right: -2,
-                        top: -2,
+                        right: -3,
+                        top: -3,
                         child: Container(
                           constraints:
                               const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
+                            minWidth: 17,
+                            minHeight: 17,
                           ),
                           padding:
                               const EdgeInsets
@@ -675,8 +905,14 @@ class _TopBar extends StatelessWidget {
                           ),
                           decoration:
                               BoxDecoration(
-                            color:
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFFF7A70),
                                 AppColors.crit,
+                              ],
+                            ),
                             shape:
                                 BoxShape.circle,
                             border:
@@ -684,6 +920,10 @@ class _TopBar extends StatelessWidget {
                               color:
                                   AppColors.bg,
                               width: 2,
+                            ),
+                            boxShadow: AppColors.glow(
+                              AppColors.crit,
+                              strength: 0.8,
                             ),
                           ),
                           child: Center(
@@ -749,27 +989,9 @@ class _StatusPill extends StatelessWidget {
         mainAxisSize:
             MainAxisSize.min,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration:
-                BoxDecoration(
-              color: color,
-              shape:
-                  BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color:
-                      color.withOpacity(
-                          0.18),
-                  blurRadius: 0,
-                  spreadRadius: 3,
-                ),
-              ],
-            ),
-          ),
+          _PulsingDot(color: color, size: 6),
 
-          const SizedBox(width: 6),
+          const SizedBox(width: 8),
 
           Text(
             label,
@@ -841,56 +1063,90 @@ class _Panel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding:
-          const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.panel,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.line,
+    return _RiseIn(
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: AppColors.elevation(),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.stretch,
-        children: [
-          Row(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppColors.panelTop,
+                AppColors.panelBottom,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.line,
+            ),
+          ),
+          child: Column(
             crossAxisAlignment:
-                CrossAxisAlignment.end,
-            mainAxisAlignment:
-                MainAxisAlignment.spaceBetween,
+                CrossAxisAlignment.stretch,
             children: [
-              Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    eyebrow.toUpperCase(),
-                    style: _eyebrow(),
-                  ),
-
-                  const SizedBox(height: 2),
-
-                  Text(
-                    title,
-                    style: _display(
-                      size: 15,
+              // Thin glowing accent bar — a small signature touch that
+              // hints at the panel's "liveness" without shouting.
+              ClipRRect(
+                borderRadius: BorderRadius.circular(100),
+                child: Container(
+                  height: 2.5,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.water.withOpacity(0.85),
+                        AppColors.soap.withOpacity(0.55),
+                        Colors.transparent,
+                      ],
                     ),
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              Row(
+                crossAxisAlignment:
+                    CrossAxisAlignment.end,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        eyebrow.toUpperCase(),
+                        style: _eyebrow(),
+                      ),
+
+                      const SizedBox(height: 2),
+
+                      Text(
+                        title,
+                        style: _display(
+                          size: 15,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  if (trailing != null)
+                    trailing!,
                 ],
               ),
 
-              if (trailing != null)
-                trailing!,
+              const SizedBox(height: 12),
+
+              child,
             ],
           ),
-
-          const SizedBox(height: 12),
-
-          child,
-        ],
+        ),
       ),
     );
   }
@@ -1091,9 +1347,15 @@ class _BayStatusPanelState
             CrossAxisAlignment.stretch,
         children: [
           Center(
-            child: SizedBox(
+            child: Container(
               width: 160,
               height: 160,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: freeCount > 0
+                    ? AppColors.glow(AppColors.water, strength: 0.5)
+                    : null,
+              ),
               child: CustomPaint(
                 painter: _DialPainter(
                   fraction:
@@ -1201,6 +1463,16 @@ class _DialPainter extends CustomPainter {
 
     const strokeWidth = 9.0;
 
+    // Faint inner disc so the dial reads as an "instrument" rather than
+    // a flat ring floating on the panel.
+    final discPaint = Paint()
+      ..color = Colors.black.withOpacity(0.12);
+    canvas.drawCircle(
+      center,
+      radius - strokeWidth / 2 - 4,
+      discPaint,
+    );
+
     final trackPaint = Paint()
       ..color = AppColors.panel2
       ..style =
@@ -1218,38 +1490,77 @@ class _DialPainter extends CustomPainter {
       radius: radius,
     );
 
-    final gradient =
-        const SweepGradient(
-      colors: [
-        AppColors.water,
-        AppColors.ok,
-      ],
-      startAngle: 0,
-      endAngle: 3.14159 * 2,
-    );
-
-    final fillPaint = Paint()
-      ..shader =
-          gradient.createShader(rect)
-      ..style =
-          PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap =
-          StrokeCap.round;
-
     const startAngle =
         -3.14159 / 2;
 
     final sweepAngle =
         3.14159 * 2 * fraction;
 
-    canvas.drawArc(
-      rect,
-      startAngle,
-      sweepAngle,
-      false,
-      fillPaint,
-    );
+    if (fraction > 0) {
+      // Soft blurred glow pass underneath the crisp arc for extra depth.
+      final glowPaint = Paint()
+        ..shader = const SweepGradient(
+          colors: [
+            AppColors.water,
+            AppColors.soap,
+            AppColors.ok,
+          ],
+          startAngle: 0,
+          endAngle: 3.14159 * 2,
+        ).createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth + 7
+        ..strokeCap = StrokeCap.round
+        ..maskFilter =
+            const MaskFilter.blur(BlurStyle.normal, 8);
+
+      canvas.drawArc(
+        rect,
+        startAngle,
+        sweepAngle,
+        false,
+        glowPaint,
+      );
+
+      final gradient = const SweepGradient(
+        colors: [
+          AppColors.water,
+          AppColors.soap,
+          AppColors.ok,
+        ],
+        startAngle: 0,
+        endAngle: 3.14159 * 2,
+      );
+
+      final fillPaint = Paint()
+        ..shader =
+            gradient.createShader(rect)
+        ..style =
+            PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap =
+            StrokeCap.round;
+
+      canvas.drawArc(
+        rect,
+        startAngle,
+        sweepAngle,
+        false,
+        fillPaint,
+      );
+
+      // Bright little cap at the leading edge of the arc, like a needle tip.
+      final tipAngle = startAngle + sweepAngle;
+      final tipCenter = Offset(
+        center.dx + radius * math.cos(tipAngle),
+        center.dy + radius * math.sin(tipAngle),
+      );
+      final tipPaint = Paint()
+        ..color = Colors.white.withOpacity(0.9)
+        ..maskFilter =
+            const MaskFilter.blur(BlurStyle.normal, 1.5);
+      canvas.drawCircle(tipCenter, strokeWidth / 3.2, tipPaint);
+    }
   }
 
   @override
@@ -1287,11 +1598,20 @@ class _BayRow extends StatelessWidget {
         vertical: 9,
       ),
       decoration: BoxDecoration(
-        color: AppColors.panel2,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.panel2,
+            AppColors.panel2.withOpacity(0.7),
+          ],
+        ),
         borderRadius:
             BorderRadius.circular(10),
         border: Border.all(
-          color: AppColors.line,
+          color: available
+              ? color.withOpacity(0.28)
+              : AppColors.line,
         ),
       ),
       child: Row(
@@ -1300,10 +1620,19 @@ class _BayRow extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color:
-                  color.withOpacity(0.12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withOpacity(0.22),
+                  color.withOpacity(0.08),
+                ],
+              ),
               borderRadius:
                   BorderRadius.circular(7),
+              boxShadow: available
+                  ? AppColors.glow(color, strength: 0.35)
+                  : null,
             ),
             child: Icon(
               available
