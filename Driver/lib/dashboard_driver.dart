@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 
 import 'app_theme.dart';
 import 'appoint.dart';
@@ -45,6 +46,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // Used to check the appointment status regularly
   Timer? _statusTimer;
 
+  // Used to update the driver's GPS location
+  Timer? _locationTimer;
+
+  // Latest driver's GPS position
+  Position? _currentPosition;
+
   // Prevent an older completed-washes request
   // from overwriting a newer result.
   int _completedLoadVersion = 0;
@@ -64,14 +71,128 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           _loadAppointmentStatus();
         },
       );
+
+      // Start GPS tracking only when there is an active appointment.
+      _startLocationTracking();
     }
   }
 
   @override
   void dispose() {
     _statusTimer?.cancel();
+    _locationTimer?.cancel();
     super.dispose();
   }
+
+  // ----------------------------------------------------------
+  // DRIVER GPS LOCATION
+  // ----------------------------------------------------------
+
+  Future<void> _startLocationTracking() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      if (!serviceEnabled) {
+        debugPrint('Location services are disabled.');
+        return;
+      }
+
+      LocationPermission permission =
+          await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied) {
+        debugPrint('Location permission denied.');
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        debugPrint('Location permission permanently denied.');
+        return;
+      }
+
+      // Get the driver's current position immediately.
+      await _updateCurrentLocation();
+
+      // Then update the position regularly.
+      _locationTimer = Timer.periodic(
+        const Duration(seconds: 5),
+        (_) {
+          _updateCurrentLocation();
+        },
+      );
+    } catch (e) {
+      debugPrint('Location tracking error: $e');
+    }
+  }
+
+Future<void> _updateCurrentLocation() async {
+  try {
+    final Position position =
+        await Geolocator.getCurrentPosition(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _currentPosition = position;
+    });
+
+    debugPrint(
+      'Driver location: '
+      '${position.latitude}, ${position.longitude}',
+    );
+
+        debugPrint(
+      'Sending location for appointment: ${widget.appointmentId}',
+    );
+
+    // Send the driver's location to Laravel.
+    if (widget.appointmentId != null) {
+      try {
+
+        debugPrint('Sending location to Laravel...');
+        
+        final response = await http.post(
+          Uri.parse(
+            'http://127.0.0.1:8000/api/driver/location',
+          ),
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode({
+            'driver_id': widget.driverId,
+            'latitude': position.latitude,
+            'longitude': position.longitude,
+          }),
+        );
+
+        debugPrint(
+          'Location API response: '
+          '${response.statusCode} ${response.body}',
+        );
+      } catch (e) {
+        debugPrint(
+          'Could not send driver location: $e',
+        );
+      }
+    }
+  } catch (e) {
+    debugPrint(
+      'Could not get driver location: $e',
+    );
+  }
+}
 
   // ----------------------------------------------------------
   // LOAD CURRENT APPOINTMENT STATUS
@@ -104,7 +225,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         return;
       }
 
-      final String status = appointment['status']?.toString() ?? '';
+      final String status =
+          appointment['status']?.toString() ?? '';
 
       if (!mounted) return;
 
@@ -120,6 +242,9 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         // Stop checking this appointment because it is finished.
         _statusTimer?.cancel();
 
+        // Stop GPS tracking because the trip is finished.
+        _locationTimer?.cancel();
+
         // Load the newly completed appointment.
         await _loadCompletedWashes();
 
@@ -129,7 +254,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         if (mounted &&
             widget.appointmentId != null &&
             !completedAppointments.any(
-              (appointment) => appointment['id'] == widget.appointmentId,
+              (appointment) =>
+                  appointment['id'] == widget.appointmentId,
             )) {
           setState(() {
             completedAppointments.insert(0, {
@@ -192,7 +318,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
         if (!mounted) return;
 
         setState(() {
-          completedAppointments = List<Map<String, dynamic>>.from(
+          completedAppointments =
+              List<Map<String, dynamic>>.from(
             data['appointments'] ?? [],
           );
 
@@ -221,10 +348,17 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
   // Pull-to-refresh: reload the list and, if a wash is active, its status.
   Future<void> _refreshAll() async {
-    if (widget.appointmentId != null && currentStatus != 'completed') {
+    if (widget.appointmentId != null &&
+        currentStatus != 'completed') {
       await _loadAppointmentStatus();
     }
+
     await _loadCompletedWashes();
+
+    if (widget.appointmentId != null &&
+        currentStatus != 'completed') {
+      await _updateCurrentLocation();
+    }
   }
 
   // ----------------------------------------------------------
@@ -339,9 +473,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
     // Current wash disappears after the worker finishes.
     final bool hasAppointment =
-        widget.appointmentId != null && currentStatus != 'completed';
+        widget.appointmentId != null &&
+        currentStatus != 'completed';
+
     final bool justCompleted =
-        widget.appointmentId != null && currentStatus == 'completed';
+        widget.appointmentId != null &&
+        currentStatus == 'completed';
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -366,7 +503,12 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           backgroundColor: c.surface,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              28,
+            ),
             children: [
               // ------------------------------------------------
               // HEADER
@@ -375,10 +517,17 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                 children: [
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
-                        Text('${DriverSession.greeting},', style: t.bodyMuted),
-                        Text(DriverSession.firstName, style: t.display),
+                        Text(
+                          '${DriverSession.greeting},',
+                          style: t.bodyMuted,
+                        ),
+                        Text(
+                          DriverSession.firstName,
+                          style: t.display,
+                        ),
                       ],
                     ),
                   ),
@@ -391,18 +540,24 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
               // ------------------------------------------------
               // CURRENT WASH
               // ------------------------------------------------
-              if (hasAppointment) _buildCurrentWash(c, t),
+              if (hasAppointment)
+                _buildCurrentWash(c, t),
 
-              if (justCompleted) _buildCompletedBanner(c, t),
+              if (justCompleted)
+                _buildCompletedBanner(c, t),
 
-              if (!hasAppointment && !justCompleted) _buildNoWashCard(c, t),
+              if (!hasAppointment && !justCompleted)
+                _buildNoWashCard(c, t),
 
               const SizedBox(height: 32),
 
               // ------------------------------------------------
               // RECENT WASHES
               // ------------------------------------------------
-              Text('Recent washes', style: t.heading),
+              Text(
+                'Recent washes',
+                style: t.heading,
+              ),
 
               const SizedBox(height: 14),
 
@@ -418,17 +573,30 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // CURRENT WASH CARD
   // ----------------------------------------------------------
 
-  Widget _buildCurrentWash(AppColors c, AppType t) {
+  Widget _buildCurrentWash(
+    AppColors c,
+    AppType t,
+  ) {
     return SurfaceCard(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      padding: const EdgeInsets.fromLTRB(
+        18,
+        18,
+        18,
+        20,
+      ),
       borderColor: c.accent.withAlpha(110),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
             children: [
-              Text('Current wash', style: t.label),
+              Text(
+                'Current wash',
+                style: t.label,
+              ),
               Pill(
                 label: _currentStatusText,
                 color: _statusColor(c),
@@ -445,7 +613,10 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: PlateTag(widget.plateNumber ?? 'Unknown', fontSize: 30),
+                  child: PlateTag(
+                    widget.plateNumber ?? 'Unknown',
+                    fontSize: 30,
+                  ),
                 ),
               ),
             ],
@@ -455,23 +626,35 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
           _InfoLine(
             icon: Icons.location_on_outlined,
-            text: (widget.comingFrom == null || widget.comingFrom!.isEmpty)
-                ? 'Location not specified'
-                : 'From ${widget.comingFrom}',
+            text:
+                (widget.comingFrom == null ||
+                        widget.comingFrom!.isEmpty)
+                    ? 'Location not specified'
+                    : 'From ${widget.comingFrom}',
           ),
+
           const SizedBox(height: 8),
+
           _InfoLine(
             icon: Icons.event_outlined,
-            text: '${widget.livestockLoad ?? ''}  ·  ${widget.preferredTime ?? ''}',
+            text:
+                '${widget.livestockLoad ?? ''}  ·  ${widget.preferredTime ?? ''}',
           ),
 
           const SizedBox(height: 24),
 
-          WashTracker(stepIndex: _stepIndex),
+          WashTracker(
+            stepIndex: _stepIndex,
+          ),
 
           const SizedBox(height: 18),
 
-          Text(_statusHint, style: t.bodyMuted.copyWith(fontSize: 15)),
+          Text(
+            _statusHint,
+            style: t.bodyMuted.copyWith(
+              fontSize: 15,
+            ),
+          ),
 
           const SizedBox(height: 18),
 
@@ -480,12 +663,26 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
             icon: Icons.qr_code_2_rounded,
             onPressed: _openGatePass,
           ),
+
+          // Temporary GPS information.
+          if (_currentPosition != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'GPS: '
+              '${_currentPosition!.latitude.toStringAsFixed(6)}, '
+              '${_currentPosition!.longitude.toStringAsFixed(6)}',
+              style: t.caption,
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildCompletedBanner(AppColors c, AppType t) {
+  Widget _buildCompletedBanner(
+    AppColors c,
+    AppType t,
+  ) {
     return SurfaceCard(
       color: c.successSoft,
       borderColor: c.success.withAlpha(120),
@@ -494,19 +691,32 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
           Container(
             width: 46,
             height: 46,
-            decoration: BoxDecoration(color: c.success, shape: BoxShape.circle),
-            child: Icon(Icons.check_rounded, color: c.bg, size: 28),
+            decoration: BoxDecoration(
+              color: c.success,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: c.bg,
+              size: 28,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                Text('Wash complete', style: t.heading),
+                Text(
+                  'Wash complete',
+                  style: t.heading,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '${widget.plateNumber ?? 'Your truck'} is clean and ready to go.',
-                  style: t.bodyMuted.copyWith(fontSize: 15),
+                  style: t.bodyMuted.copyWith(
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
@@ -516,26 +726,42 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     );
   }
 
-  Widget _buildNoWashCard(AppColors c, AppType t) {
+  Widget _buildNoWashCard(
+    AppColors c,
+    AppType t,
+  ) {
     return SurfaceCard(
       child: Row(
         children: [
           Container(
             width: 46,
             height: 46,
-            decoration: BoxDecoration(color: c.accentSoft, shape: BoxShape.circle),
-            child: Icon(Icons.local_shipping_outlined, color: c.accent, size: 24),
+            decoration: BoxDecoration(
+              color: c.accentSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_shipping_outlined,
+              color: c.accent,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
-                Text('No wash booked', style: t.heading),
+                Text(
+                  'No wash booked',
+                  style: t.heading,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   'Book a slot before you head to the station.',
-                  style: t.bodyMuted.copyWith(fontSize: 15),
+                  style: t.bodyMuted.copyWith(
+                    fontSize: 15,
+                  ),
                 ),
               ],
             ),
@@ -549,18 +775,26 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // RECENT WASHES LIST
   // ----------------------------------------------------------
 
-  Widget _buildRecentWashes(AppColors c, AppType t) {
+  Widget _buildRecentWashes(
+    AppColors c,
+    AppType t,
+  ) {
     if (isLoadingWashes) {
       return Column(
         children: List.generate(
           3,
           (_) => Container(
             height: 76,
-            margin: const EdgeInsets.only(bottom: 12),
+            margin: const EdgeInsets.only(
+              bottom: 12,
+            ),
             decoration: BoxDecoration(
               color: c.surface,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: c.line),
+              borderRadius:
+                  BorderRadius.circular(18),
+              border: Border.all(
+                color: c.line,
+              ),
             ),
           ),
         ),
@@ -571,22 +805,40 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
       return const EmptyState(
         icon: Icons.history_rounded,
         title: 'No washes yet',
-        message: 'Your finished washes will show up here.',
+        message:
+            'Your finished washes will show up here.',
       );
     }
 
     return Column(
-      children: completedAppointments.map((appointment) {
-        final String plate = appointment['truck_plate']?.toString() ?? 'Unknown';
+      children: completedAppointments
+          .map((appointment) {
+        final String plate =
+            appointment['truck_plate']
+                    ?.toString() ??
+                'Unknown';
 
         final String comingFrom =
-            appointment['coming_from']?.toString() ?? 'Location not specified';
+            appointment['coming_from']
+                    ?.toString() ??
+                'Location not specified';
 
-        final String date = _formatDate(appointment['preferred_datetime']);
+        final String date =
+            _formatDate(
+          appointment['preferred_datetime'],
+        );
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _buildWashTile(c, t, plate, '$date  ·  $comingFrom'),
+          padding:
+              const EdgeInsets.only(
+            bottom: 12,
+          ),
+          child: _buildWashTile(
+            c,
+            t,
+            plate,
+            '$date  ·  $comingFrom',
+          ),
         );
       }).toList(),
     );
@@ -602,7 +854,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     }
 
     try {
-      final date = DateTime.parse(value.toString());
+      final date =
+          DateTime.parse(value.toString());
 
       const months = [
         'Jan',
@@ -629,37 +882,56 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // RECENT WASH ITEM
   // ----------------------------------------------------------
 
-  Widget _buildWashTile(AppColors c, AppType t, String plate, String details) {
+  Widget _buildWashTile(
+    AppColors c,
+    AppType t,
+    String plate,
+    String details,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: c.line),
+        borderRadius:
+            BorderRadius.circular(18),
+        border: Border.all(
+          color: c.line,
+        ),
       ),
       child: Row(
         children: [
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: c.successSoft, shape: BoxShape.circle),
-            child: Icon(Icons.local_car_wash_rounded, color: c.success, size: 23),
+            decoration: BoxDecoration(
+              color: c.successSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_car_wash_rounded,
+              color: c.success,
+              size: 23,
+            ),
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   plate.toUpperCase(),
-                  style: t.heading.copyWith(letterSpacing: 1.5),
+                  style: t.heading.copyWith(
+                    letterSpacing: 1.5,
+                  ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   details,
                   style: t.caption,
                   maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  overflow:
+                      TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -678,7 +950,11 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 }
 
 class _InfoLine extends StatelessWidget {
-  const _InfoLine({required this.icon, required this.text});
+  const _InfoLine({
+    required this.icon,
+    required this.text,
+  });
+
   final IconData icon;
   final String text;
 
@@ -686,14 +962,22 @@ class _InfoLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Row(
       children: [
-        Icon(icon, size: 20, color: c.textMuted),
+        Icon(
+          icon,
+          size: 20,
+          color: c.textMuted,
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
-            style: t.body.copyWith(fontSize: 15, color: c.text),
+            style: t.body.copyWith(
+              fontSize: 15,
+              color: c.text,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

@@ -29,3 +29,7 @@ Route::post(
     [WorkerAssignmentController::class, 'finish']
 );
 
+Route::get(
+    '/worker/driver/{driverId}/location',
+    [WorkerController::class, 'driverLocation']
+);

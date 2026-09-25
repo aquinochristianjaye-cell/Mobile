@@ -221,6 +221,7 @@ class _RiseIn extends StatefulWidget {
 
   const _RiseIn({
     required this.child,
+    // ignore: unused_element_parameter
     this.delay = Duration.zero,
   });
 

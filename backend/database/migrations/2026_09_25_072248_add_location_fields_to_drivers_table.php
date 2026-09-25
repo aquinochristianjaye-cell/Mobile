@@ -8,23 +8,21 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('drivers', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->string('mobile')->nullable();
-            $table->string('password');
-
+        Schema::table('drivers', function (Blueprint $table) {
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->timestamp('location_updated_at')->nullable();
-
-            $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('drivers');
+        Schema::table('drivers', function (Blueprint $table) {
+            $table->dropColumn([
+                'latitude',
+                'longitude',
+                'location_updated_at',
+            ]);
+        });
     }
 };

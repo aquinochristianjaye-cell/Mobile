@@ -16,6 +16,9 @@ class Driver extends Authenticatable
         'email',
         'mobile',
         'password',
+        'latitude',
+        'longitude',
+        'location_updated_at',
     ];
 
     protected $hidden = [
@@ -23,7 +26,7 @@ class Driver extends Authenticatable
     ];
 
     public function appointments()
-{
-    return $this->hasMany(Appointment::class);
-}
+    {
+        return $this->hasMany(Appointment::class);
+    }
 }

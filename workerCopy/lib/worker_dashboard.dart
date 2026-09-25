@@ -1,3 +1,4 @@
+import 'driver_tracking_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 
@@ -496,9 +497,32 @@ class _WorkerDashboardScreenState
 
           const SizedBox(height: 24),
 
-          WashTracker(stepIndex: step),
+       WashTracker(stepIndex: step),
 
-          const SizedBox(height: 22),
+  // Show tracking button only while the driver is on the way.
+  if (!hasArrived && !isWashing) ...[
+  const SizedBox(height: 14),
+
+    SecondaryButton(
+      label: 'Track driver',
+      icon: Icons.location_on_outlined,
+      onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DriverTrackingScreen(
+          appointment: appointment,
+        ),
+      ),
+    );
+  },
+  ),
+],
+
+const SizedBox(height: 22),
+
+// Truck is currently washing
+if (isWashing) ...[
 
           // Truck is currently washing
           if (isWashing) ...[
@@ -554,6 +578,7 @@ class _WorkerDashboardScreenState
                 ],
               ),
             ),
+          ]  
         ],
       ),
     );

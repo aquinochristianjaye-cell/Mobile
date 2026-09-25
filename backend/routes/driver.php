@@ -9,6 +9,8 @@ Route::get('/driver/test', [DriverController::class, 'test']);
 
 Route::post('/driver/login', [DriverAuthController::class, 'login']);
 
+Route::post('/driver/location', [DriverController::class, 'updateLocation']);
+
 Route::post('/driver/appointments', [AppointmentController::class, 'store']);
 
 Route::post('/driver/check-in', [AppointmentController::class, 'checkIn']);
