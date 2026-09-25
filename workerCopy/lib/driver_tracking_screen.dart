@@ -32,7 +32,7 @@ class _DriverTrackingScreenState
   String? _errorMessage;
 
   static const String apiBaseUrl =
-      'http://192.168.100.236:8000/api';
+      'http://http://127.0.0.1:8000/api/api';
 
   @override
   void initState() {
