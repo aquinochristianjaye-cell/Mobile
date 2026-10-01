@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\AppointmentController;
 use App\Http\Controllers\Api\Admin\WorkerAssignmentController;
 use App\Http\Controllers\Api\Admin\WorkerController;
 use App\Http\Controllers\Api\Admin\StaffAccountController;
+use App\Http\Controllers\Api\Admin\DriverTrackingController;
 
 
 Route::get('/admin/test', [AdminController::class, 'test']);
@@ -27,6 +28,7 @@ Route::get('/admin/workers', [WorkerController::class, 'index']);
 Route::get('/admin/assignments/active', [WorkerAssignmentController::class, 'active']);
 
 Route::get('/admin/assignments/active', [WorkerAssignmentController::class, 'active']);
+
 
 Route::get(
     '/admin/assignments/completed',
@@ -48,4 +50,8 @@ Route::post(
     [StaffAccountController::class, 'createWorker']
 );
 
+Route::get(
+    '/admin/drivers/locations',
+    [DriverTrackingController::class, 'index']
+);
 
