@@ -189,4 +189,20 @@ class AppointmentController extends Controller
             'message' => 'Location updated successfully.',
         ], 200);
     }
+
+    // ----------------------------------------------------------
+    // GET COMPLETED WASHES FOR DRIVER
+    // ----------------------------------------------------------
+
+    public function completed($driverId)
+    {
+        $appointments = Appointment::where('driver_id', $driverId)
+            ->where('status', 'completed')
+            ->orderBy('updated_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'appointments' => $appointments,
+        ], 200);
+    }
 }
