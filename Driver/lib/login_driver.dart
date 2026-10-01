@@ -8,7 +8,7 @@ import 'driver_session.dart';
 import 'widgets.dart';
 
 class LoginDriverScreen extends StatefulWidget {
-  const LoginDriverScreen({Key? key}) : super(key: key);
+  const LoginDriverScreen({super.key});
 
   @override
   State<LoginDriverScreen> createState() => _LoginDriverScreenState();
@@ -70,9 +70,9 @@ class _LoginDriverScreenState extends State<LoginDriverScreen> {
         final driverId = data['driver']['id'];
 
         // Remember the name so the app can greet the driver.
-        DriverSession.start(
-          driverId: driverId is int ? driverId : null,
-          driverName: data['driver']['name']?.toString(),
+       await DriverSession.start(
+       driverId: driverId is int ? driverId : null,
+       driverName: data['driver']['name']?.toString(),
         );
 
         Navigator.pushReplacement(

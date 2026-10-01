@@ -4,13 +4,28 @@ import 'package:flutter/services.dart';
 import 'app_theme.dart';
 import 'sign_in.dart';
 import 'widgets.dart';
+import 'worker_dashboard.dart';
+import 'worker_session.dart';
 
-void main() {
-  runApp(const AquinoWashStationApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final isLoggedIn = await WorkerSession.restore();
+
+  runApp(
+    AquinoWashStationApp(
+      isLoggedIn: isLoggedIn,
+    ),
+  );
 }
 
 class AquinoWashStationApp extends StatelessWidget {
-  const AquinoWashStationApp({super.key});
+  final bool isLoggedIn;
+
+  const AquinoWashStationApp({
+    super.key,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,16 +38,29 @@ class AquinoWashStationApp extends StatelessWidget {
           theme: AppTheme.light,
           darkTheme: AppTheme.dark,
           themeMode: mode,
-          // Keeps the status bar icons readable in both themes.
+
           builder: (context, child) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final isDark =
+                Theme.of(context).brightness == Brightness.dark;
+
             return AnnotatedRegion<SystemUiOverlayStyle>(
-              value: (isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark)
-                  .copyWith(statusBarColor: Colors.transparent),
+              value: (isDark
+                      ? SystemUiOverlayStyle.light
+                      : SystemUiOverlayStyle.dark)
+                  .copyWith(
+                statusBarColor: Colors.transparent,
+              ),
               child: child ?? const SizedBox.shrink(),
             );
           },
-          home: const AuthScreen(),
+
+          home: isLoggedIn
+              ? WorkerDashboardScreen(
+                  workerId: WorkerSession.id!,
+                  workerName: WorkerSession.displayName,
+                  workerIdNumber: WorkerSession.workerCode ?? '',
+                )
+              : const AuthScreen(),
         );
       },
     );
@@ -52,15 +80,20 @@ class AuthScreen extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final bool wide = constraints.maxWidth >= 600;
-            final double maxContentWidth = wide ? 480.0 : double.infinity;
-            final double horizontalPadding = wide ? 32.0 : 24.0;
+            final double maxContentWidth =
+                wide ? 480.0 : double.infinity;
+            final double horizontalPadding =
+                wide ? 32.0 : 24.0;
 
             return Align(
               alignment: Alignment.topCenter,
               child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
+                constraints: BoxConstraints(
+                  maxWidth: maxContentWidth,
+                ),
                 child: SingleChildScrollView(
-                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   child: Stack(
                     children: [
                       const Positioned(
@@ -77,9 +110,12 @@ class AuthScreen extends StatelessWidget {
                           24,
                         ),
                         child: const Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
-                            BrandLockup(subtitle: 'Worker portal'),
+                            BrandLockup(
+                              subtitle: 'Worker portal',
+                            ),
                             SizedBox(height: 64),
                             SignInForm(),
                           ],

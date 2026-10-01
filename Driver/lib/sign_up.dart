@@ -7,7 +7,7 @@ import 'login_driver.dart';
 import 'widgets.dart';
 
 class SignUpDriverScreen extends StatefulWidget {
-  const SignUpDriverScreen({Key? key}) : super(key: key);
+  const SignUpDriverScreen({super.key});
 
   @override
   State<SignUpDriverScreen> createState() => _SignUpDriverScreenState();

@@ -534,7 +534,7 @@ class _CreateWorkerPageState extends State<CreateWorkerPage> {
                             foregroundColor:
                                 background,
                             disabledBackgroundColor:
-                                teal.withOpacity(0.4),
+                                teal.withValues(alpha: 0.4),
                             shape:
                                 RoundedRectangleBorder(
                               borderRadius:

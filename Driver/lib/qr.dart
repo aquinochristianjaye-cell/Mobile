@@ -18,7 +18,7 @@ class QrCodeDriverScreen extends StatelessWidget {
   final bool fromDashboard;
 
   const QrCodeDriverScreen({
-    Key? key,
+    super.key,
     required this.driverId,
     required this.appointmentId,
     required this.plateNumber,
@@ -26,7 +26,7 @@ class QrCodeDriverScreen extends StatelessWidget {
     required this.preferredTime,
     required this.comingFrom,
     this.fromDashboard = false,
-  }) : super(key: key);
+  });
 
   void _finish(BuildContext context) {
     if (fromDashboard && Navigator.canPop(context)) {

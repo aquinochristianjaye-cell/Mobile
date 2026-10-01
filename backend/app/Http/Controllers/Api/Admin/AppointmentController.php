@@ -10,7 +10,7 @@ class AppointmentController extends Controller
     public function index()
     {
         $appointments = Appointment::with('driver')
-            ->where('status', 'scheduled')
+            ->where('status', 'pending')
             ->orderBy('preferred_datetime', 'asc')
             ->get();
 

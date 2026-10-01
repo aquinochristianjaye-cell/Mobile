@@ -245,7 +245,7 @@ class ScreenHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }
@@ -894,7 +894,7 @@ class SectionHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(child: Text(title, style: t.heading)),
-        if (trailing != null) trailing!,
+        ?trailing,
       ],
     );
   }

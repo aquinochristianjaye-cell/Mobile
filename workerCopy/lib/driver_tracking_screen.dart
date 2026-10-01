@@ -32,7 +32,7 @@ class _DriverTrackingScreenState
   String? _errorMessage;
 
   static const String apiBaseUrl =
-      'http://http://127.0.0.1:8000/api/api';
+      'http://127.0.0.1:8000/api';
 
   @override
   void initState() {
@@ -83,11 +83,15 @@ class _DriverTrackingScreenState
         },
       );
 
-      if (response.statusCode != 200) {
-        throw Exception(
-          'Location API returned ${response.statusCode}',
-        );
-      }
+    if (response.statusCode != 200) {
+  debugPrint(
+    'Location API error ${response.statusCode}: ${response.body}',
+  );
+
+  throw Exception(
+    'Location API returned ${response.statusCode}: ${response.body}',
+  );
+}
 
       final data =
           jsonDecode(response.body) as Map<String, dynamic>;

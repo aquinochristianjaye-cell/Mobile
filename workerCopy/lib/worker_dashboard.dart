@@ -348,10 +348,19 @@ class _WorkerDashboardScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${WorkerSession.greeting},', style: t.bodyMuted),
-              Text(WorkerSession.firstName, style: t.display),
+              Text(
+                '${WorkerSession.greeting},',
+                style: t.bodyMuted,
+              ),
+              Text(
+                WorkerSession.firstName,
+                style: t.display,
+              ),
               const SizedBox(height: 2),
-              Text('Worker ID ${widget.workerIdNumber}', style: t.caption),
+              Text(
+                'Worker ID ${widget.workerIdNumber}',
+                style: t.caption,
+              ),
             ],
           ),
         ),
@@ -366,7 +375,10 @@ class _WorkerDashboardScreenState
 
   Widget _buildTruckQueue(AppColors c, AppType t) {
     if (isLoadingAssignments) {
-      return const SkeletonBlock(height: 260, radius: 20);
+      return const SkeletonBlock(
+        height: 260,
+        radius: 20,
+      );
     }
 
     if (assignments.isEmpty) {
@@ -430,33 +442,61 @@ class _WorkerDashboardScreenState
     final String appointmentStatus =
         (appointment['status'] ?? 'scheduled').toString();
 
-    final bool isWashing = assignmentStatus == 'washing';
+    final bool isWashing =
+        assignmentStatus == 'washing';
 
-    final bool hasArrived = appointmentStatus == 'arrived';
+    final bool hasArrived =
+        appointmentStatus == 'arrived';
 
     // Same colors and words the driver sees in their app.
-    final int step = isWashing ? 2 : (hasArrived ? 1 : 0);
-    final Color color =
-        isWashing ? c.accent : (hasArrived ? c.success : c.signal);
-    final Color soft = isWashing
-        ? c.accentSoft
-        : (hasArrived ? c.successSoft : c.signalSoft);
-    final String statusLabel =
-        isWashing ? 'Washing' : (hasArrived ? 'Arrived' : 'On the way');
+    final int step =
+        isWashing ? 2 : (hasArrived ? 1 : 0);
 
-    final int waiting = assignments.length - 1;
+    final Color color =
+        isWashing
+            ? c.accent
+            : (hasArrived ? c.success : c.signal);
+
+    final Color soft =
+        isWashing
+            ? c.accentSoft
+            : (hasArrived ? c.successSoft : c.signalSoft);
+
+    final String statusLabel =
+        isWashing
+            ? 'Washing'
+            : (hasArrived ? 'Arrived' : 'On the way');
+
+    final int waiting =
+        assignments.length - 1;
 
     return SurfaceCard(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 20),
+      padding: const EdgeInsets.fromLTRB(
+        18,
+        18,
+        18,
+        20,
+      ),
       borderColor: color.withAlpha(140),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment:
+                MainAxisAlignment.spaceBetween,
             children: [
-              Text(isWashing ? 'Now washing' : 'Next truck', style: t.label),
-              Pill(label: statusLabel, color: color, background: soft),
+              Text(
+                isWashing
+                    ? 'Now washing'
+                    : 'Next truck',
+                style: t.label,
+              ),
+              Pill(
+                label: statusLabel,
+                color: color,
+                background: soft,
+              ),
             ],
           ),
 
@@ -467,8 +507,12 @@ class _WorkerDashboardScreenState
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: PlateTag(plate, fontSize: 30),
+                  alignment:
+                      Alignment.centerLeft,
+                  child: PlateTag(
+                    plate,
+                    fontSize: 30,
+                  ),
                 ),
               ),
             ],
@@ -476,8 +520,13 @@ class _WorkerDashboardScreenState
 
           const SizedBox(height: 16),
 
-          _InfoLine(icon: Icons.person_outline_rounded, text: name),
+          _InfoLine(
+            icon: Icons.person_outline_rounded,
+            text: name,
+          ),
+
           const SizedBox(height: 8),
+
           _InfoLine(
             icon: Icons.location_on_outlined,
             text: location == 'Unknown location'
@@ -497,32 +546,15 @@ class _WorkerDashboardScreenState
 
           const SizedBox(height: 24),
 
-       WashTracker(stepIndex: step),
+          WashTracker(
+            stepIndex: step,
+          ),
 
-  // Show tracking button only while the driver is on the way.
-  if (!hasArrived && !isWashing) ...[
-  const SizedBox(height: 14),
+          const SizedBox(height: 22),
 
-    SecondaryButton(
-      label: 'Track driver',
-      icon: Icons.location_on_outlined,
-      onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DriverTrackingScreen(
-          appointment: appointment,
-        ),
-      ),
-    );
-  },
-  ),
-],
-
-const SizedBox(height: 22),
-
-// Truck is currently washing
-if (isWashing) ...[
+          // ====================================================
+          // ACTION BUTTON
+          // ====================================================
 
           // Truck is currently washing
           if (isWashing) ...[
@@ -530,9 +562,12 @@ if (isWashing) ...[
               label: 'Finish washing',
               icon: Icons.check_circle_outline_rounded,
               loading: _actionBusy,
-              onPressed: () => _finishWash(assignment),
+              onPressed: () =>
+                  _finishWash(assignment),
             ),
+
             const SizedBox(height: 10),
+
             SecondaryButton(
               label: 'View truck details',
               icon: Icons.local_shipping_outlined,
@@ -540,7 +575,8 @@ if (isWashing) ...[
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => WashingScreen(
+                    builder: (context) =>
+                        WashingScreen(
                       appointment: appointment,
                     ),
                   ),
@@ -548,37 +584,39 @@ if (isWashing) ...[
               },
             ),
           ]
-          // Truck arrived but washing has not started
-          else if (hasArrived)
+
+          // Truck has arrived
+          else if (hasArrived) ...[
             PrimaryButton(
               label: 'Start washing',
               icon: Icons.play_arrow_rounded,
               loading: _actionBusy,
-              onPressed: () => _startWash(assignment, appointment),
-            )
-          // Truck has not arrived yet
-          else
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: c.signalSoft,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.hourglass_bottom_rounded, size: 22, color: c.signal),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Waiting for the truck to arrive. You can start once it\'s here.',
-                      style: t.body.copyWith(fontSize: 15, color: c.text),
-                    ),
-                  ),
-                ],
+              onPressed: () =>
+                  _startWash(
+                assignment,
+                appointment,
               ),
             ),
-          ]  
+          ]
+
+          // Truck is still on the way
+          else ...[
+            SecondaryButton(
+              label: 'Track driver',
+              icon: Icons.location_on_outlined,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        DriverTrackingScreen(
+                      appointment: appointment,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -588,15 +626,23 @@ if (isWashing) ...[
   // CHEMICAL & FLUID LEVELS
   // ============================================================
 
-  Widget _buildLevelsCard(AppColors c, AppType t) {
+  Widget _buildLevelsCard(
+    AppColors c,
+    AppType t,
+  ) {
     if (isLoadingSupplies) {
-      return const SkeletonBlock(height: 250, radius: 20);
+      return const SkeletonBlock(
+        height: 250,
+        radius: 20,
+      );
     }
 
-    // Names of anything running very low, so it can't be missed.
+    // Names of anything running very low,
+    // so it can't be missed.
     final low = <String>[
       if (foamWashLevel <= 20) 'foam wash',
-      if (disinfectantLevel <= 20) 'disinfectant',
+      if (disinfectantLevel <= 20)
+        'disinfectant',
       if (waterLevel <= 20) 'water',
     ];
 
@@ -609,49 +655,78 @@ if (isWashing) ...[
         child: SurfaceCard(
           child: Column(
             children: [
-              SupplyGauge(label: 'Foam wash', level: foamWashLevel),
+              SupplyGauge(
+                label: 'Foam wash',
+                level: foamWashLevel,
+              ),
+
               const SizedBox(height: 20),
-              SupplyGauge(label: 'Disinfectant', level: disinfectantLevel),
+
+              SupplyGauge(
+                label: 'Disinfectant',
+                level: disinfectantLevel,
+              ),
+
               const SizedBox(height: 20),
-              SupplyGauge(label: 'Water', level: waterLevel),
+
+              SupplyGauge(
+                label: 'Water',
+                level: waterLevel,
+              ),
 
               const SizedBox(height: 16),
-              Divider(height: 1, color: c.line),
+
+              Divider(
+                height: 1,
+                color: c.line,
+              ),
+
               const SizedBox(height: 14),
 
               if (low.isNotEmpty) ...[
                 Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded, size: 18, color: c.danger),
+                    Icon(
+                      Icons.warning_amber_rounded,
+                      size: 18,
+                      color: c.danger,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Refill soon: ${low.join(', ')}.',
                         style: t.caption.copyWith(
                           color: c.danger,
-                          fontWeight: FontWeight.w700,
+                          fontWeight:
+                              FontWeight.w700,
                           fontSize: 14,
                         ),
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 12),
               ],
 
               Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisAlignment:
+                    MainAxisAlignment.end,
                 children: [
                   Text(
                     'Update levels',
                     style: t.label.copyWith(
                       color: c.accent,
                       fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                      fontWeight:
+                          FontWeight.w700,
                     ),
                   ),
                   const SizedBox(width: 2),
-                  Icon(Icons.chevron_right_rounded, color: c.accent),
+                  Icon(
+                    Icons.chevron_right_rounded,
+                    color: c.accent,
+                  ),
                 ],
               ),
             ],
@@ -665,14 +740,20 @@ if (isWashing) ...[
   // COMPLETED TRUCKS
   // ============================================================
 
-  Widget _buildCompletedTrucks(AppColors c, AppType t) {
+  Widget _buildCompletedTrucks(
+    AppColors c,
+    AppType t,
+  ) {
     if (isLoadingCompleted) {
       return Column(
         children: List.generate(
           2,
           (_) => const Padding(
-            padding: EdgeInsets.only(bottom: 12),
-            child: SkeletonBlock(height: 104),
+            padding:
+                EdgeInsets.only(bottom: 12),
+            child: SkeletonBlock(
+              height: 104,
+            ),
           ),
         ),
       );
@@ -684,39 +765,53 @@ if (isWashing) ...[
         child: EmptyState(
           icon: Icons.history_rounded,
           title: 'No finished trucks',
-          message: 'Finished trucks will appear here.',
+          message:
+              'Finished trucks will appear here.',
         ),
       );
     }
 
-    // At most 6 trucks are kept, so they simply flow in the page.
+    // At most 6 trucks are kept,
+    // so they simply flow in the page.
     return Column(
-      children: completedAssignments.map((assignment) {
-        final appointment = Map<String, dynamic>.from(
+      children:
+          completedAssignments.map((assignment) {
+        final appointment =
+            Map<String, dynamic>.from(
           assignment['appointment'] ?? {},
         );
 
-        final driver = Map<String, dynamic>.from(
+        final driver =
+            Map<String, dynamic>.from(
           appointment['driver'] ?? {},
         );
 
         final plate =
-            appointment['truck_plate'] ?? 'Unknown truck';
+            appointment['truck_plate'] ??
+                'Unknown truck';
 
         final driverName =
-            driver['name'] ?? 'Unknown driver';
+            driver['name'] ??
+                'Unknown driver';
 
-        final finishedAt = assignment['finished_at'];
+        final finishedAt =
+            assignment['finished_at'];
 
-        final bay = assignment['wash_bay_id'] ?? 'N/A';
+        final bay =
+            assignment['wash_bay_id'] ??
+                'N/A';
 
-        final duration = _calculateDuration(
+        final duration =
+            _calculateDuration(
           assignment['started_at'],
           assignment['finished_at'],
         );
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding:
+              const EdgeInsets.only(
+            bottom: 12,
+          ),
           child: _buildFinishedCard(
             c,
             t,
@@ -735,16 +830,20 @@ if (isWashing) ...[
   // ============================================================
 
   String _formatDateTime(dynamic value) {
-    if (value == null || value.toString().isEmpty) {
+    if (value == null ||
+        value.toString().isEmpty) {
       return 'Finished time unavailable';
     }
 
     try {
-      final dateTime = DateTime.parse(
+      final dateTime =
+          DateTime.parse(
         value.toString(),
       ).toLocal();
 
-      return formatMonthDayTime(dateTime);
+      return formatMonthDayTime(
+        dateTime,
+      );
     } catch (e) {
       return 'Finished time unavailable';
     }
@@ -754,32 +853,39 @@ if (isWashing) ...[
     dynamic startedAt,
     dynamic finishedAt,
   ) {
-    if (startedAt == null || finishedAt == null) {
+    if (startedAt == null ||
+        finishedAt == null) {
       return 'Duration unavailable';
     }
 
     try {
-      final started = DateTime.parse(
+      final started =
+          DateTime.parse(
         startedAt.toString(),
       );
 
-      final finished = DateTime.parse(
+      final finished =
+          DateTime.parse(
         finishedAt.toString(),
       );
 
-      final difference = finished.difference(
+      final difference =
+          finished.difference(
         started,
       );
 
-      final totalMinutes = difference.inMinutes;
+      final totalMinutes =
+          difference.inMinutes;
 
       if (totalMinutes < 1) {
         return '< 1 min';
       }
 
-      final hours = totalMinutes ~/ 60;
+      final hours =
+          totalMinutes ~/ 60;
 
-      final minutes = totalMinutes % 60;
+      final minutes =
+          totalMinutes % 60;
 
       if (hours > 0) {
         return 'Duration: ${hours}h ${minutes}m';
@@ -807,40 +913,76 @@ if (isWashing) ...[
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: c.surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: c.line),
+        borderRadius:
+            BorderRadius.circular(18),
+        border: Border.all(
+          color: c.line,
+        ),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Container(
             width: 44,
             height: 44,
-            decoration: BoxDecoration(color: c.successSoft, shape: BoxShape.circle),
-            child: Icon(Icons.local_car_wash_rounded, color: c.success, size: 23),
+            decoration: BoxDecoration(
+              color: c.successSoft,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.local_car_wash_rounded,
+              color: c.success,
+              size: 23,
+            ),
           ),
+
           const SizedBox(width: 14),
+
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   plate.toUpperCase(),
-                  style: t.heading.copyWith(letterSpacing: 1.5),
+                  style: t.heading.copyWith(
+                    letterSpacing: 1.5,
+                  ),
                 ),
+
                 const SizedBox(height: 3),
-                Text(info, style: t.caption.copyWith(fontSize: 14)),
+
+                Text(
+                  info,
+                  style: t.caption.copyWith(
+                    fontSize: 14,
+                  ),
+                ),
+
                 const SizedBox(height: 2),
-                Text(time, style: t.caption),
+
+                Text(
+                  time,
+                  style: t.caption,
+                ),
+
                 const SizedBox(height: 2),
+
                 Text(
                   duration,
-                  style: t.caption.copyWith(color: c.textFaint, fontWeight: FontWeight.w600),
+                  style: t.caption.copyWith(
+                    color: c.textFaint,
+                    fontWeight:
+                        FontWeight.w600,
+                  ),
                 ),
               ],
             ),
           ),
+
           const SizedBox(width: 10),
+
           Pill(
             label: 'Finished',
             color: c.success,
@@ -868,19 +1010,29 @@ class _InfoLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Row(
       children: [
-        Icon(icon, size: 20, color: c.textMuted),
+        Icon(
+          icon,
+          size: 20,
+          color: c.textMuted,
+        ),
+
         const SizedBox(width: 10),
+
         Expanded(
           child: Text(
             text,
             style: t.body.copyWith(
               fontSize: 15,
-              color: muted ? c.textMuted : c.text,
+              color: muted
+                  ? c.textMuted
+                  : c.text,
             ),
             maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            overflow:
+                TextOverflow.ellipsis,
           ),
         ),
       ],

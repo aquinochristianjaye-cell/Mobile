@@ -1,4 +1,4 @@
-name: delete
+name: Driver
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -37,6 +37,7 @@ dependencies:
   http: ^1.6.0
   qr_flutter: ^4.1.0
   geolocator: ^14.0.2
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:

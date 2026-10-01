@@ -9,9 +9,9 @@ class SetAppDriverScreen extends StatefulWidget {
   final int driverId;
 
   const SetAppDriverScreen({
-    Key? key,
+    super.key,
     required this.driverId,
-  }) : super(key: key);
+  });
 
   @override
   State<SetAppDriverScreen> createState() => _SetAppDriverScreenState();

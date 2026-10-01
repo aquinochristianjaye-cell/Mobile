@@ -1,12 +1,28 @@
 import 'package:flutter/material.dart';
-import 'login_page.dart';
 
-void main() {
-  runApp(const WashStationApp());
+import 'admin_session.dart';
+import 'login_page.dart';
+import 'widgets/dashboard_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  final isLoggedIn = await AdminSession.restore();
+
+  runApp(
+    WashStationApp(
+      isLoggedIn: isLoggedIn,
+    ),
+  );
 }
 
 class WashStationApp extends StatelessWidget {
-  const WashStationApp({super.key});
+  final bool isLoggedIn;
+
+  const WashStationApp({
+    super.key,
+    required this.isLoggedIn,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +38,9 @@ class WashStationApp extends StatelessWidget {
           brightness: Brightness.dark,
         ),
       ),
-      home: const LoginPage(),
+      home: isLoggedIn
+          ? const DashboardScreen()
+          : const LoginPage(),
     );
   }
 }
-

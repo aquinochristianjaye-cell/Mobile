@@ -8,8 +8,11 @@ import 'worker_session.dart';
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
-  void _signOut(BuildContext context) {
-    WorkerSession.clear();
+  Future<void> _signOut(BuildContext context) async {
+    await WorkerSession.clear();
+
+    if (!context.mounted) return;
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const AuthScreen()),
@@ -83,40 +86,17 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _showDeactivate(BuildContext context) {
-    final c = context.c;
-    final t = context.t;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: c.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Text('Deactivate account', style: t.heading),
-        content: Text(
-          'Worker accounts are managed by the administrator. Ask them to deactivate your account.',
-          style: t.bodyMuted,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'OK',
-              style: t.label.copyWith(color: c.accent, fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _sheet(BuildContext context, {required Widget child}) {
     final c = context.c;
+
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: c.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
       ),
       builder: (sheetContext) {
         return SafeArea(
@@ -178,11 +158,17 @@ class SettingsScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: c.accentSoft,
                         shape: BoxShape.circle,
-                        border: Border.all(color: c.accent.withAlpha(120), width: 1.5),
+                        border: Border.all(
+                          color: c.accent.withAlpha(120),
+                          width: 1.5,
+                        ),
                       ),
                       child: Text(
                         WorkerSession.initials,
-                        style: t.heading.copyWith(color: c.accent, fontSize: 21),
+                        style: t.heading.copyWith(
+                          color: c.accent,
+                          fontSize: 21,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -192,7 +178,9 @@ class SettingsScreen extends StatelessWidget {
                         children: [
                           Text(
                             WorkerSession.displayName,
-                            style: t.heading.copyWith(fontSize: 20),
+                            style: t.heading.copyWith(
+                              fontSize: 20,
+                            ),
                           ),
                           const SizedBox(height: 2),
                           Text(
@@ -218,24 +206,37 @@ class SettingsScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               SurfaceCard(
-                padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  10,
+                  12,
+                  10,
+                ),
                 child: ValueListenableBuilder<ThemeMode>(
                   valueListenable: themeController,
                   builder: (context, mode, _) {
-                    final isDark = Theme.of(context).brightness == Brightness.dark;
+                    final isDark =
+                        Theme.of(context).brightness ==
+                            Brightness.dark;
+
                     return Row(
                       children: [
                         _IconChip(
-                          icon: isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                          icon: isDark
+                              ? Icons.dark_mode_outlined
+                              : Icons.light_mode_outlined,
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Dark mode',
-                                style: t.body.copyWith(fontWeight: FontWeight.w700),
+                                style: t.body.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                               Text(
                                 isDark
@@ -249,7 +250,8 @@ class SettingsScreen extends StatelessWidget {
                         AppSwitch(
                           label: 'Dark mode',
                           value: isDark,
-                          onChanged: (v) => themeController.setDark(v),
+                          onChanged: (v) =>
+                              themeController.setDark(v),
                         ),
                       ],
                     );
@@ -274,7 +276,12 @@ class SettingsScreen extends StatelessWidget {
                       title: 'About application',
                       onTap: () => _showAbout(context),
                     ),
-                    Divider(height: 1, indent: 16, endIndent: 16, color: c.line),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: c.line,
+                    ),
                     _SettingsItem(
                       icon: Icons.help_outline_rounded,
                       title: 'Help and FAQ',
@@ -294,21 +301,10 @@ class SettingsScreen extends StatelessWidget {
 
               SurfaceCard(
                 padding: EdgeInsets.zero,
-                child: Column(
-                  children: [
-                    _SettingsItem(
-                      icon: Icons.logout_rounded,
-                      title: 'Sign out',
-                      onTap: () => _signOut(context),
-                    ),
-                    Divider(height: 1, indent: 16, endIndent: 16, color: c.line),
-                    _SettingsItem(
-                      icon: Icons.person_off_outlined,
-                      title: 'Deactivate my account',
-                      danger: true,
-                      onTap: () => _showDeactivate(context),
-                    ),
-                  ],
+                child: _SettingsItem(
+                  icon: Icons.logout_rounded,
+                  title: 'Sign out',
+                  onTap: () => _signOut(context),
                 ),
               ),
             ],
@@ -320,13 +316,18 @@ class SettingsScreen extends StatelessWidget {
 }
 
 class _IconChip extends StatelessWidget {
-  const _IconChip({required this.icon, this.danger = false});
+  const _IconChip({
+    required this.icon,
+    this.danger = false,
+  });
+
   final IconData icon;
   final bool danger;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+
     return Container(
       width: 42,
       height: 42,
@@ -334,7 +335,11 @@ class _IconChip extends StatelessWidget {
         color: danger ? c.dangerSoft : c.accentSoft,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: danger ? c.danger : c.accent, size: 22),
+      child: Icon(
+        icon,
+        color: danger ? c.danger : c.accent,
+        size: 22,
+      ),
     );
   }
 }
@@ -356,16 +361,23 @@ class _SettingsItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           child: Row(
             children: [
-              _IconChip(icon: icon, danger: danger),
+              _IconChip(
+                icon: icon,
+                danger: danger,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
@@ -376,7 +388,10 @@ class _SettingsItem extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: c.textFaint),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: c.textFaint,
+              ),
             ],
           ),
         ),
@@ -386,7 +401,12 @@ class _SettingsItem extends StatelessWidget {
 }
 
 class _Faq extends StatelessWidget {
-  const _Faq({required this.question, required this.answer, this.last = false});
+  const _Faq({
+    required this.question,
+    required this.answer,
+    this.last = false,
+  });
+
   final String question;
   final String answer;
   final bool last;
@@ -395,17 +415,34 @@ class _Faq extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-        border: last ? null : Border(bottom: BorderSide(color: c.line)),
+        border: last
+            ? null
+            : Border(
+                bottom: BorderSide(
+                  color: c.line,
+                ),
+              ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(question, style: t.body.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            question,
+            style: t.body.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(answer, style: t.bodyMuted.copyWith(fontSize: 15)),
+          Text(
+            answer,
+            style: t.bodyMuted.copyWith(
+              fontSize: 15,
+            ),
+          ),
         ],
       ),
     );

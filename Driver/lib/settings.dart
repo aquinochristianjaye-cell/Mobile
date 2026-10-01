@@ -6,13 +6,18 @@ import 'login_driver.dart';
 import 'widgets.dart';
 
 class SettingsDriverScreen extends StatelessWidget {
-  const SettingsDriverScreen({Key? key}) : super(key: key);
+  const SettingsDriverScreen({super.key});
 
-  void _signOut(BuildContext context) {
-    DriverSession.clear();
+  Future<void> _signOut(BuildContext context) async {
+    await DriverSession.clear();
+
+    if (!context.mounted) return;
+
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (context) => const LoginDriverScreen()),
+      MaterialPageRoute(
+        builder: (context) => const LoginDriverScreen(),
+      ),
       (route) => false,
     );
   }
@@ -20,6 +25,7 @@ class SettingsDriverScreen extends StatelessWidget {
   void _showAbout(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     _sheet(
       context,
       child: Column(
@@ -44,6 +50,7 @@ class SettingsDriverScreen extends StatelessWidget {
 
   void _showHelp(BuildContext context) {
     final t = context.t;
+
     _sheet(
       context,
       child: Column(
@@ -83,45 +90,30 @@ class SettingsDriverScreen extends StatelessWidget {
     );
   }
 
-  void _showDeactivate(BuildContext context) {
+  void _sheet(
+    BuildContext context, {
+    required Widget child,
+  }) {
     final c = context.c;
-    final t = context.t;
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: c.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        title: Text('Deactivate account', style: t.heading),
-        content: Text(
-          'Driver accounts are managed by the station admin. Ask them to deactivate your account.',
-          style: t.bodyMuted,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: Text(
-              'OK',
-              style: t.label.copyWith(color: c.accent, fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
-  void _sheet(BuildContext context, {required Widget child}) {
-    final c = context.c;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: c.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(26),
+        ),
       ),
       builder: (sheetContext) {
         return SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            padding: const EdgeInsets.fromLTRB(
+              22,
+              12,
+              22,
+              24,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +122,9 @@ class SettingsDriverScreen extends StatelessWidget {
                   child: Container(
                     width: 44,
                     height: 5,
-                    margin: const EdgeInsets.only(bottom: 18),
+                    margin: const EdgeInsets.only(
+                      bottom: 18,
+                    ),
                     decoration: BoxDecoration(
                       color: c.line,
                       borderRadius: BorderRadius.circular(3),
@@ -155,7 +149,12 @@ class SettingsDriverScreen extends StatelessWidget {
       backgroundColor: c.bg,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+          padding: const EdgeInsets.fromLTRB(
+            20,
+            16,
+            20,
+            28,
+          ),
           children: [
             ScreenHeader(
               title: 'Settings',
@@ -177,21 +176,36 @@ class SettingsDriverScreen extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: c.accentSoft,
                       shape: BoxShape.circle,
-                      border: Border.all(color: c.accent.withAlpha(120), width: 1.5),
+                      border: Border.all(
+                        color: c.accent.withAlpha(120),
+                        width: 1.5,
+                      ),
                     ),
                     child: Text(
                       DriverSession.initials,
-                      style: t.heading.copyWith(color: c.accent, fontSize: 21),
+                      style: t.heading.copyWith(
+                        color: c.accent,
+                        fontSize: 21,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
                       children: [
-                        Text(DriverSession.displayName, style: t.heading.copyWith(fontSize: 20)),
+                        Text(
+                          DriverSession.displayName,
+                          style: t.heading.copyWith(
+                            fontSize: 20,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text('Driver account', style: t.caption),
+                        Text(
+                          'Driver account',
+                          style: t.caption,
+                        ),
                       ],
                     ),
                   ),
@@ -204,28 +218,44 @@ class SettingsDriverScreen extends StatelessWidget {
             // ------------------------------------------------
             // APPEARANCE
             // ------------------------------------------------
-            Text('Appearance', style: t.label),
+            Text(
+              'Appearance',
+              style: t.label,
+            ),
             const SizedBox(height: 10),
 
             SurfaceCard(
-              padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+              padding: const EdgeInsets.fromLTRB(
+                16,
+                10,
+                12,
+                10,
+              ),
               child: ValueListenableBuilder<ThemeMode>(
                 valueListenable: themeController,
                 builder: (context, mode, _) {
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  final isDark =
+                      Theme.of(context).brightness ==
+                          Brightness.dark;
+
                   return Row(
                     children: [
                       _IconChip(
-                        icon: isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined,
+                        icon: isDark
+                            ? Icons.dark_mode_outlined
+                            : Icons.light_mode_outlined,
                       ),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                          crossAxisAlignment:
+                              CrossAxisAlignment.start,
                           children: [
                             Text(
                               'Dark mode',
-                              style: t.body.copyWith(fontWeight: FontWeight.w700),
+                              style: t.body.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                             Text(
                               isDark
@@ -239,7 +269,8 @@ class SettingsDriverScreen extends StatelessWidget {
                       AppSwitch(
                         label: 'Dark mode',
                         value: isDark,
-                        onChanged: (v) => themeController.setDark(v),
+                        onChanged: (v) =>
+                            themeController.setDark(v),
                       ),
                     ],
                   );
@@ -252,7 +283,10 @@ class SettingsDriverScreen extends StatelessWidget {
             // ------------------------------------------------
             // SUPPORT
             // ------------------------------------------------
-            Text('Support', style: t.label),
+            Text(
+              'Support',
+              style: t.label,
+            ),
             const SizedBox(height: 10),
 
             SurfaceCard(
@@ -264,7 +298,12 @@ class SettingsDriverScreen extends StatelessWidget {
                     title: 'About application',
                     onTap: () => _showAbout(context),
                   ),
-                  Divider(height: 1, indent: 16, endIndent: 16, color: c.line),
+                  Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: c.line,
+                  ),
                   _SettingsItem(
                     icon: Icons.help_outline_rounded,
                     title: 'Help and FAQ',
@@ -279,26 +318,18 @@ class SettingsDriverScreen extends StatelessWidget {
             // ------------------------------------------------
             // ACCOUNT
             // ------------------------------------------------
-            Text('Account', style: t.label),
+            Text(
+              'Account',
+              style: t.label,
+            ),
             const SizedBox(height: 10),
 
             SurfaceCard(
               padding: EdgeInsets.zero,
-              child: Column(
-                children: [
-                  _SettingsItem(
-                    icon: Icons.logout_rounded,
-                    title: 'Sign out',
-                    onTap: () => _signOut(context),
-                  ),
-                  Divider(height: 1, indent: 16, endIndent: 16, color: c.line),
-                  _SettingsItem(
-                    icon: Icons.person_off_outlined,
-                    title: 'Deactivate my account',
-                    danger: true,
-                    onTap: () => _showDeactivate(context),
-                  ),
-                ],
+              child: _SettingsItem(
+                icon: Icons.logout_rounded,
+                title: 'Sign out',
+                onTap: () => _signOut(context),
               ),
             ),
           ],
@@ -309,21 +340,34 @@ class SettingsDriverScreen extends StatelessWidget {
 }
 
 class _IconChip extends StatelessWidget {
-  const _IconChip({required this.icon, this.danger = false});
+  const _IconChip({
+    required this.icon,
+    this.danger = false,
+  });
+
   final IconData icon;
   final bool danger;
 
   @override
   Widget build(BuildContext context) {
     final c = context.c;
+
     return Container(
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: danger ? c.dangerSoft : c.accentSoft,
+        color: danger
+            ? c.dangerSoft
+            : c.accentSoft,
         shape: BoxShape.circle,
       ),
-      child: Icon(icon, color: danger ? c.danger : c.accent, size: 22),
+      child: Icon(
+        icon,
+        color: danger
+            ? c.danger
+            : c.accent,
+        size: 22,
+      ),
     );
   }
 }
@@ -345,27 +389,39 @@ class _SettingsItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
           child: Row(
             children: [
-              _IconChip(icon: icon, danger: danger),
+              _IconChip(
+                icon: icon,
+                danger: danger,
+              ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   title,
                   style: t.body.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: danger ? c.danger : c.text,
+                    color: danger
+                        ? c.danger
+                        : c.text,
                   ),
                 ),
               ),
-              Icon(Icons.chevron_right_rounded, color: c.textFaint),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: c.textFaint,
+              ),
             ],
           ),
         ),
@@ -375,7 +431,12 @@ class _SettingsItem extends StatelessWidget {
 }
 
 class _Faq extends StatelessWidget {
-  const _Faq({required this.question, required this.answer, this.last = false});
+  const _Faq({
+    required this.question,
+    required this.answer,
+    this.last = false,
+  });
+
   final String question;
   final String answer;
   final bool last;
@@ -384,17 +445,37 @@ class _Faq extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        vertical: 14,
+      ),
       decoration: BoxDecoration(
-        border: last ? null : Border(bottom: BorderSide(color: c.line)),
+        border: last
+            ? null
+            : Border(
+                bottom: BorderSide(
+                  color: c.line,
+                ),
+              ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
-          Text(question, style: t.body.copyWith(fontWeight: FontWeight.w700)),
+          Text(
+            question,
+            style: t.body.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(answer, style: t.bodyMuted.copyWith(fontSize: 15)),
+          Text(
+            answer,
+            style: t.bodyMuted.copyWith(
+              fontSize: 15,
+            ),
+          ),
         ],
       ),
     );

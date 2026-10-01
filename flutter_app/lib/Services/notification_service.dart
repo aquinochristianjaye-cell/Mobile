@@ -15,7 +15,7 @@ class NotificationService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      return data['notifications'];
+      return data['notifications'] ?? [];
     } else {
       throw Exception('Failed to load notifications');
     }

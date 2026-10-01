@@ -15,7 +15,7 @@ class AppointmentService {
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
 
-      return data['appointments'];
+      return data['appointments'] ?? [];
     } else {
       throw Exception('Failed to load appointments');
     }

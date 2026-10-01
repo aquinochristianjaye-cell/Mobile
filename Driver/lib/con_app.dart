@@ -23,7 +23,7 @@ class ConfirmAppDriverScreen extends StatefulWidget {
   final String ewalletPin;
 
   const ConfirmAppDriverScreen({
-    Key? key,
+    super.key,
     required this.driverId,
     required this.preferredDateTime,
     required this.truckUsed,
@@ -33,7 +33,7 @@ class ConfirmAppDriverScreen extends StatefulWidget {
     required this.preferredTime,
     required this.ewalletAccount,
     required this.ewalletPin,
-  }) : super(key: key);
+  });
 
   @override
   State<ConfirmAppDriverScreen> createState() => _ConfirmAppDriverScreenState();

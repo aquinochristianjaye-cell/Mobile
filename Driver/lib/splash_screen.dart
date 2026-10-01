@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
 import 'login_driver.dart';
+import 'dashboard_driver.dart';
+import 'driver_session.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({Key? key}) : super(key: key);
+  const SplashScreen({super.key});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -41,15 +43,32 @@ class _SplashScreenState extends State<SplashScreen>
     super.dispose();
   }
 
-  void _navigateToLogin() async {
+  Future<void> _navigateToLogin() async {
     await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginDriverScreen()),
-    );
+    final isLoggedIn = await DriverSession.restore();
+
+    if (!mounted) return;
+
+    if (isLoggedIn && DriverSession.id != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MainScreenDriver(
+            driverId: DriverSession.id!,
+          ),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginDriverScreen(),
+        ),
+      );
+    }
   }
 
   @override
@@ -63,10 +82,16 @@ class _SplashScreenState extends State<SplashScreen>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            final fill = Curves.easeOutCubic.transform(_controller.value);
+            final fill =
+                Curves.easeOutCubic.transform(_controller.value);
+
             final double rawOpacity =
-                ((_controller.value - 0.55) / 0.45).clamp(0.0, 1.0).toDouble();
-            final double textOpacity = Curves.easeIn.transform(rawOpacity);
+                ((_controller.value - 0.55) / 0.45)
+                    .clamp(0.0, 1.0)
+                    .toDouble();
+
+            final double textOpacity =
+                Curves.easeIn.transform(rawOpacity);
 
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -89,9 +114,15 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: textOpacity,
                   child: Column(
                     children: [
-                      Text('Aquino Wash Station', style: t.title),
+                      Text(
+                        'Aquino Wash Station',
+                        style: t.title,
+                      ),
                       const SizedBox(height: 8),
-                      Text('Pure water. Perfect clean.', style: t.caption),
+                      Text(
+                        'Pure water. Perfect clean.',
+                        style: t.caption,
+                      ),
                     ],
                   ),
                 ),
@@ -114,7 +145,7 @@ class _DropFillPainter extends CustomPainter {
     required this.empty,
   });
 
-  final double fill; // 0..1
+  final double fill;
   final double phase;
   final Color water;
   final Color outline;
@@ -123,15 +154,35 @@ class _DropFillPainter extends CustomPainter {
   Path _dropPath(Size s) {
     final w = s.width;
     final h = s.height;
+
     final p = Path()..moveTo(w / 2, 0);
-    p.cubicTo(w * 0.5, h * 0.16, w * 0.95, h * 0.44, w * 0.95, h * 0.68);
+
+    p.cubicTo(
+      w * 0.5,
+      h * 0.16,
+      w * 0.95,
+      h * 0.44,
+      w * 0.95,
+      h * 0.68,
+    );
+
     p.arcToPoint(
       Offset(w * 0.05, h * 0.68),
       radius: Radius.circular(w * 0.45),
       clockwise: true,
     );
-    p.cubicTo(w * 0.05, h * 0.44, w * 0.5, h * 0.16, w / 2, 0);
+
+    p.cubicTo(
+      w * 0.05,
+      h * 0.44,
+      w * 0.5,
+      h * 0.16,
+      w / 2,
+      0,
+    );
+
     p.close();
+
     return p;
   }
 
@@ -140,23 +191,41 @@ class _DropFillPainter extends CustomPainter {
     final drop = _dropPath(size);
 
     // Empty drop
-    canvas.drawPath(drop, Paint()..color = empty);
+    canvas.drawPath(
+      drop,
+      Paint()..color = empty,
+    );
 
     // Water level: from the bottom up to just below the tip.
     final level = size.height * (1 - fill * 0.96);
     final amp = 6 * (1 - fill * 0.75);
 
     final wave = Path()..moveTo(0, size.height);
+
     wave.lineTo(0, level);
+
     for (double x = 0; x <= size.width; x += 2) {
-      wave.lineTo(x, level + math.sin(x / size.width * 2 * math.pi + phase) * amp);
+      wave.lineTo(
+        x,
+        level +
+            math.sin(
+                  x / size.width * 2 * math.pi + phase,
+                ) *
+                amp,
+      );
     }
+
     wave.lineTo(size.width, size.height);
     wave.close();
 
     canvas.save();
     canvas.clipPath(drop);
-    canvas.drawPath(wave, Paint()..color = water);
+
+    canvas.drawPath(
+      wave,
+      Paint()..color = water,
+    );
+
     canvas.restore();
 
     canvas.drawPath(
@@ -171,5 +240,7 @@ class _DropFillPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DropFillPainter old) =>
-      old.fill != fill || old.phase != phase || old.water != water;
+      old.fill != fill ||
+      old.phase != phase ||
+      old.water != water;
 }

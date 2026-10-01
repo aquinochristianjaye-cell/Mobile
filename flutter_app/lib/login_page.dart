@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
+import 'admin_session.dart';
 import 'create_account_page.dart';
-import 'dashboard.dart';
+import 'widgets/dashboard_screen.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -59,12 +61,17 @@ class _LoginPageState extends State<LoginPage> {
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
+        // Save Admin login locally.
+        await AdminSession.start(
+          adminEmail: email,
+        );
+
         if (!mounted) return;
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => const AquinoWashApp(),
+            builder: (context) => const DashboardScreen(),
           ),
         );
       } else {
@@ -240,7 +247,7 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2DD4BF).withOpacity(.35),
+                color: const Color(0xFF2DD4BF).withValues(alpha: .35),
                 blurRadius: 20,
                 spreadRadius: -6,
               ),
@@ -326,7 +333,7 @@ class _LoginPageState extends State<LoginPage> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF34D399).withOpacity(.25),
+                color: const Color(0xFF34D399).withValues(alpha: .25),
                 blurRadius: 8,
                 spreadRadius: 3,
               ),

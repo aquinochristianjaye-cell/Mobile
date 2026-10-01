@@ -22,14 +22,14 @@ class MainScreenDriver extends StatefulWidget {
   final String? comingFrom;
 
   const MainScreenDriver({
-    Key? key,
+    super.key,
     required this.driverId,
     this.appointmentId,
     this.plateNumber,
     this.livestockLoad,
     this.preferredTime,
     this.comingFrom,
-  }) : super(key: key);
+  });
 
   @override
   State<MainScreenDriver> createState() => _MainScreenDriverState();

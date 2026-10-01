@@ -90,7 +90,7 @@ class _SignInFormState extends State<SignInForm> {
         final String code = worker['worker_id'].toString();
 
         // Remember who is signed in so every screen can show the real name.
-        WorkerSession.start(
+        await WorkerSession.start(
           workerId: worker['id'] is int ? worker['id'] : null,
           workerName: fullName,
           code: code,

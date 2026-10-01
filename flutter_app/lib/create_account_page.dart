@@ -276,7 +276,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
             borderRadius: BorderRadius.circular(10),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF2DD4BF).withOpacity(.35),
+                color: const Color(0xFF2DD4BF).withValues(alpha: .35),
                 blurRadius: 20,
                 spreadRadius: -6,
               ),
@@ -362,7 +362,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF34D399).withOpacity(.25),
+                color: const Color(0xFF34D399).withValues(alpha: .25),
                 blurRadius: 8,
                 spreadRadius: 3,
               ),
