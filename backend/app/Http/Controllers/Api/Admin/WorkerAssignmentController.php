@@ -10,71 +10,84 @@ use Illuminate\Http\Request;
 
 class WorkerAssignmentController extends Controller
 {
-    public function deploy(Request $request)
-    {
-        $validated = $request->validate([
-            'appointment_id' => 'required|exists:appointments,id',
-            'worker_id' => 'required|exists:workers,id',
-            'wash_bay_id' => 'required|integer|in:1,2',
-        ]);
+   public function deploy(Request $request)
+{
+    \Log::info('DEPLOY START');
 
-        // Check if this truck is already assigned
-        $existingAssignment = WorkerAssignment::where(
-            'appointment_id',
-            $validated['appointment_id']
-        )
-        ->whereIn('status', ['assigned', 'washing'])
-        ->first();
+    $validated = $request->validate([
+        'appointment_id' => 'required|exists:appointments,id',
+        'worker_id' => 'required|exists:workers,id',
+        'wash_bay_id' => 'required|integer|in:1,2',
+    ]);
 
-        if ($existingAssignment) {
-            return response()->json([
-                'message' => 'This truck is already assigned.',
-            ], 400);
-        }
+    \Log::info('DEPLOY VALIDATION DONE');
 
-        // Check if the selected worker is already working
-        $workerBusy = WorkerAssignment::where(
-            'worker_id',
-            $validated['worker_id']
-        )
-        ->whereIn('status', ['assigned', 'washing'])
-        ->first();
+    $existingAssignment = WorkerAssignment::where(
+        'appointment_id',
+        $validated['appointment_id']
+    )
+    ->whereIn('status', ['assigned', 'washing'])
+    ->first();
 
-        if ($workerBusy) {
-            return response()->json([
-                'message' => 'This worker is already assigned to another truck.',
-            ], 400);
-        }
+    \Log::info('DEPLOY APPOINTMENT CHECK DONE');
 
-        // Check if the selected wash bay is already in use
-        $bayBusy = WorkerAssignment::where(
-            'wash_bay_id',
-            $validated['wash_bay_id']
-        )
-        ->whereIn('status', ['assigned', 'washing'])
-        ->first();
-
-        if ($bayBusy) {
-            return response()->json([
-                'message' => 'This wash bay is currently in use.',
-            ], 400);
-        }
-
-        $assignment = WorkerAssignment::create([
-            'appointment_id' => $validated['appointment_id'],
-            'worker_id' => $validated['worker_id'],
-            'wash_bay_id' => $validated['wash_bay_id'],
-            'status' => 'assigned',
-        ]);
-
+    if ($existingAssignment) {
         return response()->json([
-            'message' => 'Truck deployed successfully.',
-            'assignment' => $assignment->load([
-                'worker',
-                'appointment.driver',
-            ]),
-        ], 201);
+            'message' => 'This truck is already assigned.',
+        ], 400);
     }
+
+    $workerBusy = WorkerAssignment::where(
+        'worker_id',
+        $validated['worker_id']
+    )
+    ->whereIn('status', ['assigned', 'washing'])
+    ->first();
+
+    \Log::info('DEPLOY WORKER CHECK DONE');
+
+    if ($workerBusy) {
+        return response()->json([
+            'message' => 'This worker is already assigned to another truck.',
+        ], 400);
+    }
+
+    $bayBusy = WorkerAssignment::where(
+        'wash_bay_id',
+        $validated['wash_bay_id']
+    )
+    ->whereIn('status', ['assigned', 'washing'])
+    ->first();
+
+    \Log::info('DEPLOY BAY CHECK DONE');
+
+    if ($bayBusy) {
+        return response()->json([
+            'message' => 'This wash bay is currently in use.',
+        ], 400);
+    }
+
+    $assignment = WorkerAssignment::create([
+        'appointment_id' => $validated['appointment_id'],
+        'worker_id' => $validated['worker_id'],
+        'wash_bay_id' => $validated['wash_bay_id'],
+        'status' => 'assigned',
+    ]);
+
+    \Log::info('DEPLOY CREATE DONE');
+
+    $assignment->load([
+        'worker',
+        'appointment.driver',
+    ]);
+
+    \Log::info('DEPLOY RELATION LOAD DONE');
+
+    return response()->json([
+        'message' => 'Truck deployed successfully.',
+        'assignment' => $assignment,
+    ], 201);
+}
 
     public function active()
     {

@@ -27,7 +27,6 @@ Route::get('/admin/workers', [WorkerController::class, 'index']);
 
 Route::get('/admin/assignments/active', [WorkerAssignmentController::class, 'active']);
 
-Route::get('/admin/assignments/active', [WorkerAssignmentController::class, 'active']);
 
 
 Route::get(
