@@ -8,7 +8,6 @@ import 'worker_dashboard.dart';
 import 'worker_session.dart';
 
 // ---- Palette (local, so this file doesn't depend on app_theme.dart) ----
-const _bg = Color(0xFF08141C);
 const _card = Color(0xFF11232F);
 const _field = Color(0xFF0E1D28);
 const _border = Color(0xFF1F3B49);
