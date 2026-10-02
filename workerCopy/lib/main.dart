@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 
 import 'app_theme.dart';
 import 'sign_in.dart';
-import 'widgets.dart';
 import 'worker_dashboard.dart';
 import 'worker_session.dart';
 
@@ -67,66 +66,22 @@ class AquinoWashStationApp extends StatelessWidget {
   }
 }
 
+/// The login screen is now just the redesigned SignInForm:
+/// no BrandLockup, no WaveBackdrop, no scroll view.
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final c = context.c;
-
     return Scaffold(
-      backgroundColor: c.bg,
+      backgroundColor: const Color(0xFF08141C), // matches the new design
+      resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final bool wide = constraints.maxWidth >= 600;
-            final double maxContentWidth =
-                wide ? 480.0 : double.infinity;
-            final double horizontalPadding =
-                wide ? 32.0 : 24.0;
-
-            return Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: maxContentWidth,
-                ),
-                child: SingleChildScrollView(
-                  keyboardDismissBehavior:
-                      ScrollViewKeyboardDismissBehavior.onDrag,
-                  child: Stack(
-                    children: [
-                      const Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        child: WaveBackdrop(),
-                      ),
-                      Padding(
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          24,
-                          horizontalPadding,
-                          24,
-                        ),
-                        child: const Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
-                          children: [
-                            BrandLockup(
-                              subtitle: 'Worker portal',
-                            ),
-                            SizedBox(height: 64),
-                            SignInForm(),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: const SignInForm(),
+          ),
         ),
       ),
     );
