@@ -1,10 +1,10 @@
+import 'package:workerui/power_spray_screen.dart';
+
 import 'driver_tracking_screen.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
-import 'power_spray_screen.dart';
-import 'washing_screen.dart';
 import 'services/worker_assignment_service.dart';
 import 'services/station_supply_service.dart';
 import 'widgets.dart';
@@ -55,7 +55,8 @@ class _WorkerDashboardScreenState
   void initState() {
     super.initState();
 
-    // Make sure the session knows who is signed in, even after a hot restart.
+    // Make sure the session knows who is signed in,
+    // even after a hot restart.
     if (WorkerSession.isEmpty) {
       WorkerSession.start(
         workerId: widget.workerId,
@@ -104,8 +105,7 @@ class _WorkerDashboardScreenState
   Future<void> _loadCompletedAssignments() async {
     try {
       final data =
-          await WorkerAssignmentService
-              .getCompletedAssignments(
+          await WorkerAssignmentService.getCompletedAssignments(
         widget.workerId,
       );
 
@@ -191,18 +191,9 @@ class _WorkerDashboardScreenState
 
       if (!mounted) return;
 
+      // Refresh the assignment so the button changes
+      // from "Start washing" to "Finish washing".
       await _loadAssignments();
-
-      if (!mounted) return;
-
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => WashingScreen(
-            appointment: appointment,
-          ),
-        ),
-      );
     } catch (e) {
       if (!mounted) return;
 
@@ -265,7 +256,7 @@ class _WorkerDashboardScreenState
     }
   }
 
-  // Opens the update sheet right on the dashboard (no extra page).
+  // Opens the update sheet right on the dashboard.
   Future<void> _openSupplyUpdater() async {
     final SupplyLevels? saved = await showSupplyUpdateSheet(
       context,
@@ -276,7 +267,7 @@ class _WorkerDashboardScreenState
 
     if (!mounted || saved == null) return;
 
-    // Show the new levels immediately...
+    // Show the new levels immediately.
     setState(() {
       foamWashLevel = saved.foamWash;
       disinfectantLevel = saved.disinfectant;
@@ -285,7 +276,7 @@ class _WorkerDashboardScreenState
 
     showAppSnack(context, 'Supply levels updated.');
 
-    // ...then confirm with the server.
+    // Confirm with the server.
     _loadSupplies();
   }
 
@@ -308,7 +299,12 @@ class _WorkerDashboardScreenState
             backgroundColor: c.surface,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                16,
+                20,
+                32,
+              ),
               children: [
                 _buildHeader(t),
 
@@ -320,7 +316,9 @@ class _WorkerDashboardScreenState
 
                 const SizedBox(height: 30),
 
-                const SectionHeader('Chemical and fluid levels'),
+                const SectionHeader(
+                  'Chemical and fluid levels',
+                ),
                 const SizedBox(height: 12),
                 _buildLevelsCard(c, t),
 
@@ -346,7 +344,8 @@ class _WorkerDashboardScreenState
       children: [
         Expanded(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               Text(
                 '${WorkerSession.greeting},',
@@ -373,7 +372,10 @@ class _WorkerDashboardScreenState
   // TRUCK QUEUE
   // ============================================================
 
-  Widget _buildTruckQueue(AppColors c, AppType t) {
+  Widget _buildTruckQueue(
+    AppColors c,
+    AppType t,
+  ) {
     if (isLoadingAssignments) {
       return const SkeletonBlock(
         height: 260,
@@ -387,19 +389,24 @@ class _WorkerDashboardScreenState
         child: EmptyState(
           icon: Icons.local_shipping_outlined,
           title: 'No truck to wash',
-          message: 'There are currently no assigned trucks.',
+          message:
+              'There are currently no assigned trucks.',
         ),
       );
     }
 
     final assignment =
-        Map<String, dynamic>.from(assignments.first);
+        Map<String, dynamic>.from(
+      assignments.first,
+    );
 
-    final appointment = Map<String, dynamic>.from(
+    final appointment =
+        Map<String, dynamic>.from(
       assignment['appointment'] ?? {},
     );
 
-    final driver = Map<String, dynamic>.from(
+    final driver =
+        Map<String, dynamic>.from(
       appointment['driver'] ?? {},
     );
 
@@ -407,10 +414,14 @@ class _WorkerDashboardScreenState
         (driver['name'] ?? 'Unknown driver').toString();
 
     final String truckPlate =
-        (appointment['truck_plate'] ?? 'Unknown truck').toString();
+        (appointment['truck_plate'] ??
+                'Unknown truck')
+            .toString();
 
     final String comingFrom =
-        (appointment['coming_from'] ?? 'Unknown location').toString();
+        (appointment['coming_from'] ??
+                'Unknown location')
+            .toString();
 
     return _buildQueueCard(
       c,
@@ -437,10 +448,12 @@ class _WorkerDashboardScreenState
     Map<String, dynamic> assignment,
   ) {
     final String assignmentStatus =
-        (assignment['status'] ?? 'assigned').toString();
+        (assignment['status'] ?? 'assigned')
+            .toString();
 
     final String appointmentStatus =
-        (appointment['status'] ?? 'scheduled').toString();
+        (appointment['status'] ?? 'scheduled')
+            .toString();
 
     final bool isWashing =
         assignmentStatus == 'washing';
@@ -448,24 +461,31 @@ class _WorkerDashboardScreenState
     final bool hasArrived =
         appointmentStatus == 'arrived';
 
-    // Same colors and words the driver sees in their app.
+    // Same colors and words the driver sees
+    // in their app.
     final int step =
         isWashing ? 2 : (hasArrived ? 1 : 0);
 
     final Color color =
         isWashing
             ? c.accent
-            : (hasArrived ? c.success : c.signal);
+            : (hasArrived
+                ? c.success
+                : c.signal);
 
     final Color soft =
         isWashing
             ? c.accentSoft
-            : (hasArrived ? c.successSoft : c.signalSoft);
+            : (hasArrived
+                ? c.successSoft
+                : c.signalSoft);
 
     final String statusLabel =
         isWashing
             ? 'Washing'
-            : (hasArrived ? 'Arrived' : 'On the way');
+            : (hasArrived
+                ? 'Arrived'
+                : 'On the way');
 
     final int waiting =
         assignments.length - 1;
@@ -560,28 +580,11 @@ class _WorkerDashboardScreenState
           if (isWashing) ...[
             PrimaryButton(
               label: 'Finish washing',
-              icon: Icons.check_circle_outline_rounded,
+              icon:
+                  Icons.check_circle_outline_rounded,
               loading: _actionBusy,
               onPressed: () =>
                   _finishWash(assignment),
-            ),
-
-            const SizedBox(height: 10),
-
-            SecondaryButton(
-              label: 'View truck details',
-              icon: Icons.local_shipping_outlined,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        WashingScreen(
-                      appointment: appointment,
-                    ),
-                  ),
-                );
-              },
             ),
           ]
 
@@ -591,8 +594,7 @@ class _WorkerDashboardScreenState
               label: 'Start washing',
               icon: Icons.play_arrow_rounded,
               loading: _actionBusy,
-              onPressed: () =>
-                  _startWash(
+              onPressed: () => _startWash(
                 assignment,
                 appointment,
               ),
@@ -648,7 +650,8 @@ class _WorkerDashboardScreenState
 
     return Semantics(
       button: true,
-      label: 'Update chemical and fluid levels',
+      label:
+          'Update chemical and fluid levels',
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: _openSupplyUpdater,
@@ -749,8 +752,9 @@ class _WorkerDashboardScreenState
         children: List.generate(
           2,
           (_) => const Padding(
-            padding:
-                EdgeInsets.only(bottom: 12),
+            padding: EdgeInsets.only(
+              bottom: 12,
+            ),
             child: SkeletonBlock(
               height: 104,
             ),
@@ -808,8 +812,7 @@ class _WorkerDashboardScreenState
         );
 
         return Padding(
-          padding:
-              const EdgeInsets.only(
+          padding: const EdgeInsets.only(
             bottom: 12,
           ),
           child: _buildFinishedCard(
@@ -1039,3 +1042,4 @@ class _InfoLine extends StatelessWidget {
     );
   }
 }
+

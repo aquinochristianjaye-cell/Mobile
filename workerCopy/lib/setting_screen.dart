@@ -349,8 +349,7 @@ class _SettingsItem extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
-    this.danger = false,
-  });
+  }) : danger = false;
 
   final IconData icon;
   final String title;
