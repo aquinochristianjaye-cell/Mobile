@@ -20,6 +20,13 @@ Route::post('/register', [AdminAuthController::class, 'register'])
 Route::post('/register/verify-code', [AdminAuthController::class, 'verifyCode'])
     ->middleware('throttle:5,1');
 
+// Forgot password
+Route::post('/forgot-password', [AdminAuthController::class, 'forgotPassword'])
+    ->middleware('throttle:5,1');
+
+Route::post('/reset-password', [AdminAuthController::class, 'resetPassword'])
+    ->middleware('throttle:5,1');
+
 Route::post('/login', [AdminAuthController::class, 'login']);
 
 Route::get('/admin/notifications', [NotificationController::class, 'index']);

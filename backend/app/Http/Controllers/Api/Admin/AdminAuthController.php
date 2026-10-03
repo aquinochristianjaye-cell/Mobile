@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\AdminAccount;
 use App\Models\AdminEmailVerification;
+use App\Models\AdminPasswordReset;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 class AdminAuthController extends Controller
 {
+    private const MAX_RESET_ATTEMPTS = 5;
+
     /**
      * Send email verification code for Admin registration.
      */
@@ -141,6 +144,126 @@ class AdminAuthController extends Controller
     }
 
     /**
+     * Send a password reset code.
+     * Always returns the same response so attackers can't
+     * discover which emails are registered.
+     */
+    public function forgotPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $admin = AdminAccount::where(
+            'email',
+            $validated['email']
+        )->first();
+
+        if ($admin) {
+            $code = (string) random_int(100000, 999999);
+
+            AdminPasswordReset::where('email', $admin->email)->delete();
+
+            AdminPasswordReset::create([
+                'email' => $admin->email,
+                'code' => Hash::make($code),
+                'attempts' => 0,
+                'expires_at' => now()->addMinutes(5),
+            ]);
+
+            Mail::raw(
+                "Hello {$admin->first_name},\n\n"
+                . "Your Aquino Wash Station password reset code is:\n\n"
+                . "{$code}\n\n"
+                . "This code will expire in 5 minutes.\n\n"
+                . "If you did not request a password reset, you can safely ignore this email. Your password will not change.\n\n"
+                . "Aquino Wash Station",
+                function ($message) use ($admin) {
+                    $message->to($admin->email)
+                        ->subject('Aquino Wash Station - Password Reset Code');
+                }
+            );
+        }
+
+        return response()->json([
+            'message' => 'If that email is registered, a reset code has been sent.',
+        ], 200);
+    }
+
+    /**
+     * Verify the reset code and set the new password.
+     */
+    public function resetPassword(Request $request)
+    {
+        $validated = $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|digits:6',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $invalid = response()->json([
+            'message' => 'Invalid or expired code.',
+        ], 422);
+
+        $reset = AdminPasswordReset::where(
+            'email',
+            $validated['email']
+        )->first();
+
+        if (!$reset) {
+            return $invalid;
+        }
+
+        if ($reset->expires_at->isPast()) {
+            $reset->delete();
+
+            return response()->json([
+                'message' => 'The code has expired. Please request a new one.',
+            ], 422);
+        }
+
+        if (!Hash::check($validated['code'], $reset->code)) {
+            $reset->attempts++;
+
+            if ($reset->attempts >= self::MAX_RESET_ATTEMPTS) {
+                $reset->delete();
+
+                return response()->json([
+                    'message' => 'Too many wrong attempts. Please request a new code.',
+                ], 422);
+            }
+
+            $reset->save();
+
+            return response()->json([
+                'message' => 'Invalid or expired code.',
+            ], 422);
+        }
+
+        $admin = AdminAccount::where(
+            'email',
+            $validated['email']
+        )->first();
+
+        if (!$admin) {
+            $reset->delete();
+
+            return $invalid;
+        }
+
+        $admin->forceFill([
+            'password' => Hash::make($validated['password']),
+        ])->save();
+
+        // Single use: the code can never be reused.
+        $reset->delete();
+
+        return response()->json([
+            'message' => 'Password reset successfully. You can now sign in.',
+        ], 200);
+    }
+
+    /**
      * Admin login.
      */
     public function login(Request $request)
@@ -175,4 +298,3 @@ class AdminAuthController extends Controller
         ], 200);
     }
 }
-

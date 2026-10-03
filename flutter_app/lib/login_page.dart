@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'admin_session.dart';
 import 'create_account_page.dart';
+import 'forgot_password_page.dart';
 import 'widgets/dashboard_screen.dart';
 
 class LoginPage extends StatefulWidget {
@@ -521,7 +522,16 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ForgotPasswordPage(
+                  initialEmail: emailController.text.trim(),
+                ),
+              ),
+            );
+          },
           child: const Text(
             'Forgot password?',
             style: TextStyle(
