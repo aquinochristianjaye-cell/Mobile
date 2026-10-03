@@ -23,11 +23,11 @@ return [
     |
     | Here you may configure all of the mailers used by your application plus
     | their respective settings. Several examples have been configured for
-    | you and you are free to add your own as your application requires.
+    | you and you are free to add your own mailers as your application requires.
     |
     | Laravel supports a variety of mail "transport" drivers that can be used
-    | when delivering an email. You may specify which one you're using for
-    | your mailers below. You may also add additional mailers if needed.
+    | when delivering email messages. You may specify which one you're using
+    | for your mailers below. You may also add additional mailers if needed.
     |
     | Supported: "smtp", "sendmail", "mailgun", "ses", "ses-v2",
     |            "postmark", "resend", "log", "array",
@@ -46,7 +46,20 @@ return [
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
             'timeout' => null,
-            'local_domain' => env('MAIL_EHLO_DOMAIN', parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+
+            'stream' => [
+                'ssl' => [
+                    'cafile' => 'C:\xampp\php\extras\ssl\cacert-with-norton.pem',
+                    'verify_peer' => true,
+                    'verify_peer_name' => true,
+                    'peer_name' => 'smtp.gmail.com',
+                ],
+            ],
+
+            'local_domain' => env(
+                'MAIL_EHLO_DOMAIN',
+                parse_url((string) env('APP_URL', 'http://localhost'), PHP_URL_HOST)
+            ),
         ],
 
         'ses' => [
@@ -106,7 +119,7 @@ return [
     |
     | You may wish for all emails sent by your application to be sent from
     | the same address. Here you may specify a name and address that is
-    | used globally for all emails that are sent by your application.
+    | used globally for all emails sent by your application.
     |
     */
 

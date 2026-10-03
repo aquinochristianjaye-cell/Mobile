@@ -1,9 +1,40 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import 'login_page.dart';
+
+// Chrome / laptop. Use 10.0.2.2 for the Android emulator,
+// or your PC's local IP for a real phone.
+const String baseUrl = 'http://127.0.0.1:8000/api';
+
+// Reads the best error message out of a Laravel JSON response.
+String _extractMessage(dynamic data, String fallback) {
+  String message = fallback;
+
+  if (data is Map) {
+    if (data['message'] != null) {
+      message = data['message'].toString();
+    }
+
+    if (data['errors'] is Map) {
+      final errors = data['errors'] as Map;
+
+      if (errors.isNotEmpty) {
+        final firstError = errors.values.first;
+
+        if (firstError is List && firstError.isNotEmpty) {
+          message = firstError.first.toString();
+        }
+      }
+    }
+  }
+
+  return message;
+}
 
 class CreateAccountPage extends StatefulWidget {
   const CreateAccountPage({super.key});
@@ -34,7 +65,47 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 
   // ============================================================
-  // REGISTER ACCOUNT
+  // REQUEST VERIFICATION CODE (used by register + resend)
+  // Returns null on success, or an error message on failure.
+  // ============================================================
+
+  Future<String?> _requestCode() async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'first_name': firstNameController.text.trim(),
+          'last_name': lastNameController.text.trim(),
+          'email': emailController.text.trim(),
+          'password': passwordController.text,
+          'password_confirmation': confirmPasswordController.text,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return null;
+      }
+
+      if (response.statusCode == 429) {
+        return 'Too many requests. Please wait a minute and try again.';
+      }
+
+      return _extractMessage(
+        jsonDecode(response.body),
+        'Registration failed.',
+      );
+    } catch (e) {
+      return 'Could not connect to the Laravel server.\n\n'
+          'Make sure Laravel is running.';
+    }
+  }
+
+  // ============================================================
+  // REGISTER ACCOUNT (step 1: send code)
   // ============================================================
 
   Future<void> _registerAccount() async {
@@ -68,63 +139,20 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
       isLoading = true;
     });
 
-    try {
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/register'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: jsonEncode({
-          'first_name': firstName,
-          'last_name': lastName,
-          'email': email,
-          'password': password,
-          'password_confirmation': confirmPassword,
-        }),
-      );
+    final error = await _requestCode();
 
-      final data = jsonDecode(response.body);
+    if (!mounted) return;
 
-      if (!mounted) return;
+    setState(() {
+      isLoading = false;
+    });
 
-      if (response.statusCode == 201) {
-        _showAccountCreatedDialog();
-      } else {
-        String message = 'Registration failed.';
-
-        if (data['message'] != null) {
-          message = data['message'];
-        }
-
-        if (data['errors'] != null) {
-          final errors = data['errors'] as Map<String, dynamic>;
-
-          if (errors.isNotEmpty) {
-            final firstError = errors.values.first;
-
-            if (firstError is List && firstError.isNotEmpty) {
-              message = firstError.first.toString();
-            }
-          }
-        }
-
-        _showError(message);
-      }
-    } catch (e) {
-      if (!mounted) return;
-
-      _showError(
-        'Could not connect to the Laravel server.\n\n'
-        'Make sure Laravel is running.',
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+    if (error != null) {
+      _showError(error);
+      return;
     }
+
+    _showVerifyDialog(email);
   }
 
   // ============================================================
@@ -495,8 +523,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
           suffix: IconButton(
             onPressed: () {
               setState(() {
-                obscureConfirmPassword =
-                    !obscureConfirmPassword;
+                obscureConfirmPassword = !obscureConfirmPassword;
               });
             },
             icon: Icon(
@@ -512,7 +539,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         const SizedBox(height: 22),
 
         _primaryButton(
-          isLoading ? 'Creating account...' : 'Create account',
+          isLoading ? 'Sending code...' : 'Create account',
           isLoading ? () {} : _registerAccount,
         ),
 
@@ -662,6 +689,27 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 
   // ============================================================
+  // VERIFY CODE DIALOG
+  // ============================================================
+
+  void _showVerifyDialog(String email) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return _VerifyCodeDialog(
+          email: email,
+          onResend: _requestCode,
+          onVerified: () {
+            if (!mounted) return;
+            _showAccountCreatedDialog();
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
   // ACCOUNT CREATED DIALOG
   // ============================================================
 
@@ -694,7 +742,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
             ],
           ),
           content: const Text(
-            'Your account has been successfully created.',
+            'Your email has been verified and your account has been successfully created.',
             style: TextStyle(
               color: Color(0xFF8B93A1),
               fontSize: 14,
@@ -722,7 +770,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
                 ),
               ),
               child: const Text(
-                'Sign Up',
+                'Go to Sign In',
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
                 ),
@@ -735,3 +783,346 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
   }
 }
 
+// ============================================================
+// VERIFY CODE DIALOG WIDGET
+// ============================================================
+
+class _VerifyCodeDialog extends StatefulWidget {
+  final String email;
+  final Future<String?> Function() onResend;
+  final VoidCallback onVerified;
+
+  const _VerifyCodeDialog({
+    required this.email,
+    required this.onResend,
+    required this.onVerified,
+  });
+
+  @override
+  State<_VerifyCodeDialog> createState() => _VerifyCodeDialogState();
+}
+
+class _VerifyCodeDialogState extends State<_VerifyCodeDialog> {
+  static const int _cooldownSeconds = 30;
+
+  final codeController = TextEditingController();
+
+  bool isVerifying = false;
+  bool isResending = false;
+  String? errorText;
+  String? infoText;
+
+  int cooldown = _cooldownSeconds;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startCooldown();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    codeController.dispose();
+    super.dispose();
+  }
+
+  void _startCooldown() {
+    _timer?.cancel();
+
+    setState(() {
+      cooldown = _cooldownSeconds;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (cooldown <= 1) {
+        timer.cancel();
+        setState(() {
+          cooldown = 0;
+        });
+      } else {
+        setState(() {
+          cooldown--;
+        });
+      }
+    });
+  }
+
+  // ----------------------------------------------------------
+  // VERIFY
+  // ----------------------------------------------------------
+
+  Future<void> _verify() async {
+    final code = codeController.text.trim();
+
+    if (code.length != 6) {
+      setState(() {
+        errorText = 'Please enter the 6-digit code.';
+        infoText = null;
+      });
+      return;
+    }
+
+    setState(() {
+      isVerifying = true;
+      errorText = null;
+      infoText = null;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/register/verify-code'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'email': widget.email,
+          'code': code,
+        }),
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 201) {
+        Navigator.pop(context);
+        widget.onVerified();
+        return;
+      }
+
+      String message;
+
+      if (response.statusCode == 429) {
+        message = 'Too many attempts. Please wait a minute and try again.';
+      } else {
+        message = _extractMessage(
+          jsonDecode(response.body),
+          'Verification failed.',
+        );
+      }
+
+      setState(() {
+        errorText = message;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        errorText = 'Could not connect to the Laravel server.';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          isVerifying = false;
+        });
+      }
+    }
+  }
+
+  // ----------------------------------------------------------
+  // RESEND
+  // ----------------------------------------------------------
+
+  Future<void> _resend() async {
+    setState(() {
+      isResending = true;
+      errorText = null;
+      infoText = null;
+    });
+
+    final error = await widget.onResend();
+
+    if (!mounted) return;
+
+    setState(() {
+      isResending = false;
+
+      if (error == null) {
+        infoText = 'A new code has been sent to your email.';
+        codeController.clear();
+      } else {
+        errorText = error;
+      }
+    });
+
+    if (error == null) {
+      _startCooldown();
+    }
+  }
+
+  // ----------------------------------------------------------
+  // BUILD
+  // ----------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final canResend = cooldown == 0 && !isResending && !isVerifying;
+
+    return AlertDialog(
+      backgroundColor: const Color(0xFF171C25),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: const Row(
+        children: [
+          Icon(
+            Icons.mark_email_read_outlined,
+            color: Color(0xFF2DD4BF),
+            size: 28,
+          ),
+          SizedBox(width: 10),
+          Flexible(
+            child: Text(
+              'Verify your email',
+              style: TextStyle(
+                color: Color(0xFFE7EBF0),
+                fontSize: 19,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+      content: SizedBox(
+        width: 360,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'We sent a 6-digit code to\n${widget.email}\n\nThe code expires in 5 minutes.',
+              style: const TextStyle(
+                color: Color(0xFF8B93A1),
+                fontSize: 13.5,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF12161D),
+                border: Border.all(
+                  color: const Color(0xFF232A35),
+                ),
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: TextField(
+                controller: codeController,
+                autofocus: true,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                maxLength: 6,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                ],
+                onSubmitted: (_) {
+                  if (!isVerifying) _verify();
+                },
+                style: const TextStyle(
+                  color: Color(0xFFE7EBF0),
+                  fontSize: 24,
+                  letterSpacing: 10,
+                  fontWeight: FontWeight.w700,
+                ),
+                cursorColor: const Color(0xFF2DD4BF),
+                decoration: const InputDecoration(
+                  counterText: '',
+                  hintText: '••••••',
+                  hintStyle: TextStyle(
+                    color: Color(0xFF5B6472),
+                    letterSpacing: 10,
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 13,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+            ),
+            if (errorText != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                errorText!,
+                style: const TextStyle(
+                  color: Color(0xFFF87171),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            if (infoText != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                infoText!,
+                style: const TextStyle(
+                  color: Color(0xFF34D399),
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: canResend ? _resend : null,
+                child: Text(
+                  isResending
+                      ? 'Sending...'
+                      : cooldown > 0
+                          ? 'Resend code in ${cooldown}s'
+                          : 'Resend code',
+                  style: TextStyle(
+                    color: canResend
+                        ? const Color(0xFF2DD4BF)
+                        : const Color(0xFF5B6472),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: isVerifying ? null : () => Navigator.pop(context),
+          child: const Text(
+            'Cancel',
+            style: TextStyle(color: Color(0xFF8B93A1)),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: isVerifying ? null : _verify,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF2DD4BF),
+            foregroundColor: const Color(0xFF04151A),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(9),
+            ),
+          ),
+          child: isVerifying
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Color(0xFF04151A),
+                  ),
+                )
+              : const Text(
+                  'Verify',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+        ),
+      ],
+    );
+  }
+}

@@ -13,7 +13,12 @@ use App\Http\Controllers\Api\Admin\DriverTrackingController;
 
 Route::get('/admin/test', [AdminController::class, 'test']);
 
-Route::post('/register', [AdminAuthController::class, 'register']);
+// Registration with email verification
+Route::post('/register', [AdminAuthController::class, 'register'])
+    ->middleware('throttle:5,1');
+
+Route::post('/register/verify-code', [AdminAuthController::class, 'verifyCode'])
+    ->middleware('throttle:5,1');
 
 Route::post('/login', [AdminAuthController::class, 'login']);
 
@@ -53,4 +58,3 @@ Route::get(
     '/admin/drivers/locations',
     [DriverTrackingController::class, 'index']
 );
-
