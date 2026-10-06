@@ -764,6 +764,30 @@ class _AvailableWashersPanelState
     );
   }
 
+  // ===================== WORKER STATUS HELPERS =====================
+
+  bool _isWorkerAvailable(
+    Map<String, dynamic> worker,
+  ) {
+    final value = worker['is_available'];
+
+    return value == true ||
+        value == 1 ||
+        value?.toString().toLowerCase() == 'true' ||
+        value?.toString() == '1';
+  }
+
+  bool _isWorkerOnBreak(
+    Map<String, dynamic> worker,
+  ) {
+    final value = worker['is_on_break'];
+
+    return value == true ||
+        value == 1 ||
+        value?.toString().toLowerCase() == 'true' ||
+        value?.toString() == '1';
+  }
+
   @override
   Widget build(BuildContext context) {
     final busyWorkerIds = assignments
@@ -842,6 +866,42 @@ class _AvailableWashersPanelState
                   final name =
                       '$firstName $lastName'.trim();
 
+                  final isAvailable =
+                      _isWorkerAvailable(worker);
+
+                  final isOnBreak =
+                      _isWorkerOnBreak(worker);
+
+                  final isOnWork =
+                      busyWorkerIds.contains(workerId);
+
+                  // Priority:
+                  // 1. On Work
+                  // 2. On Break
+                  // 3. Unavailable
+                  // 4. Available
+                  String status;
+                  IconData icon;
+                  Color statusColor;
+
+                  if (isOnWork) {
+                    status = 'ON WORK';
+                    icon = Icons.local_car_wash;
+                    statusColor = AppColors.crit;
+                  } else if (isOnBreak) {
+                    status = 'ON BREAK';
+                    icon = Icons.free_breakfast_outlined;
+                    statusColor = AppColors.warn;
+                  } else if (!isAvailable) {
+                    status = 'UNAVAILABLE';
+                    icon = Icons.close;
+                    statusColor = AppColors.crit;
+                  } else {
+                    status = 'AVAILABLE';
+                    icon = Icons.check;
+                    statusColor = AppColors.ok;
+                  }
+
                   return Padding(
                     padding: const EdgeInsets.only(
                       bottom: 8,
@@ -850,8 +910,9 @@ class _AvailableWashersPanelState
                       name: name.isEmpty
                           ? 'Unknown worker'
                           : name,
-                      onWork:
-                          busyWorkerIds.contains(workerId),
+                      status: status,
+                      icon: icon,
+                      color: statusColor,
                     ),
                   );
                 },
@@ -861,37 +922,31 @@ class _AvailableWashersPanelState
   }
 }
 
-
-
 /// ===================== WASHER ROW =====================
 
-class _WasherRow
-    extends StatelessWidget {
+class _WasherRow extends StatelessWidget {
   final String name;
-  final bool onWork;
+  final String status;
+  final IconData icon;
+  final Color color;
 
   const _WasherRow({
     required this.name,
-    required this.onWork,
+    required this.status,
+    required this.icon,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        onWork
-            ? AppColors.crit
-            : AppColors.ok;
-
     return Container(
-      padding:
-          const EdgeInsets.symmetric(
+      padding: const EdgeInsets.symmetric(
         horizontal: 11,
         vertical: 9,
       ),
       decoration: BoxDecoration(
         color: AppColors.panel2,
-        borderRadius:
-            BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: AppColors.line,
         ),
@@ -902,15 +957,11 @@ class _WasherRow
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color:
-                  color.withValues(alpha: 0.12),
-              borderRadius:
-                  BorderRadius.circular(7),
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(7),
             ),
             child: Icon(
-              onWork
-                  ? Icons.close
-                  : Icons.check,
+              icon,
               size: 15,
               color: color,
             ),
@@ -923,35 +974,25 @@ class _WasherRow
               name,
               style: bodyStyle(
                 size: 12.5,
-                weight:
-                    FontWeight.w600,
+                weight: FontWeight.w600,
               ),
             ),
           ),
 
           Container(
-            padding:
-                const EdgeInsets
-                    .symmetric(
+            padding: const EdgeInsets.symmetric(
               horizontal: 8,
               vertical: 3,
             ),
-            decoration:
-                BoxDecoration(
-              color:
-                  color.withValues(alpha: 0.12),
-              borderRadius:
-                  BorderRadius.circular(
-                      100),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(100),
             ),
             child: Text(
-              onWork
-                  ? 'ON WORK'
-                  : 'AVAILABLE',
+              status,
               style: TextStyle(
                 fontSize: 9.5,
-                fontWeight:
-                    FontWeight.w700,
+                fontWeight: FontWeight.w700,
                 letterSpacing: 0.3,
                 color: color,
               ),
@@ -962,5 +1003,4 @@ class _WasherRow
     );
   }
 }
-
 

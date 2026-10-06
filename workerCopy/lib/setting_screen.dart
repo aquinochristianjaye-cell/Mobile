@@ -3,10 +3,209 @@ import 'package:flutter/material.dart';
 import 'app_theme.dart';
 import 'main.dart';
 import 'widgets.dart';
+import 'worker_availability_service.dart';
+import 'worker_break_service.dart';
 import 'worker_session.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _onBreak = false;
+
+  // ----------------------------------------------------------
+  // WORKER AVAILABILITY
+  // ----------------------------------------------------------
+
+  bool _isAvailable = true;
+  bool _loadingAvailability = true;
+  bool _updatingAvailability = false;
+
+  // ----------------------------------------------------------
+  // WORKER BREAK
+  // ----------------------------------------------------------
+
+  bool _loadingBreak = true;
+  bool _updatingBreak = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailability();
+    _loadBreak();
+  }
+
+  Future<void> _loadAvailability() async {
+    final workerId = WorkerSession.id;
+
+    if (workerId == null) {
+      if (mounted) {
+        setState(() {
+          _loadingAvailability = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final isAvailable =
+          await WorkerAvailabilityService.getAvailability(workerId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _isAvailable = isAvailable;
+        _loadingAvailability = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadingAvailability = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to load worker availability.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _changeAvailability(bool value) async {
+    final workerId = WorkerSession.id;
+
+    if (workerId == null) return;
+
+    final oldValue = _isAvailable;
+
+    setState(() {
+      _isAvailable = value;
+      _updatingAvailability = true;
+    });
+
+    try {
+      final updated =
+          await WorkerAvailabilityService.updateAvailability(
+        workerId,
+        value,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isAvailable = updated;
+        _updatingAvailability = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isAvailable = oldValue;
+        _updatingAvailability = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
+
+  // ----------------------------------------------------------
+  // WORKER BREAK
+  // ----------------------------------------------------------
+
+  Future<void> _loadBreak() async {
+    final workerId = WorkerSession.id;
+
+    if (workerId == null) {
+      if (mounted) {
+        setState(() {
+          _loadingBreak = false;
+        });
+      }
+      return;
+    }
+
+    try {
+      final isOnBreak =
+          await WorkerBreakService.getBreak(workerId);
+
+      if (!mounted) return;
+
+      setState(() {
+        _onBreak = isOnBreak;
+        _loadingBreak = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() {
+        _loadingBreak = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to load worker break status.',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _changeBreak(bool value) async {
+    final workerId = WorkerSession.id;
+
+    if (workerId == null) return;
+
+    final oldValue = _onBreak;
+
+    setState(() {
+      _onBreak = value;
+      _updatingBreak = true;
+    });
+
+    try {
+      final updated =
+          await WorkerBreakService.updateBreak(
+        workerId,
+        value,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _onBreak = updated;
+        _updatingBreak = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _onBreak = oldValue;
+        _updatingBreak = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString().replaceFirst('Exception: ', ''),
+          ),
+        ),
+      );
+    }
+  }
 
   Future<void> _signOut(BuildContext context) async {
     await WorkerSession.clear();
@@ -23,6 +222,7 @@ class SettingsScreen extends StatelessWidget {
   void _showAbout(BuildContext context) {
     final c = context.c;
     final t = context.t;
+
     _sheet(
       context,
       child: Column(
@@ -38,7 +238,9 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Aquino Truck Wash Station',
-            style: t.caption.copyWith(color: c.textFaint),
+            style: t.caption.copyWith(
+              color: c.textFaint,
+            ),
           ),
         ],
       ),
@@ -47,13 +249,17 @@ class SettingsScreen extends StatelessWidget {
 
   void _showHelp(BuildContext context) {
     final t = context.t;
+
     _sheet(
       context,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Help and FAQ', style: t.title),
+          Text(
+            'Help and FAQ',
+            style: t.title,
+          ),
           const SizedBox(height: 8),
           const _Faq(
             question: 'How do I start a wash?',
@@ -86,7 +292,10 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  void _sheet(BuildContext context, {required Widget child}) {
+  void _sheet(
+    BuildContext context, {
+    required Widget child,
+  }) {
     final c = context.c;
 
     showModalBottomSheet<void>(
@@ -101,7 +310,12 @@ class SettingsScreen extends StatelessWidget {
       builder: (sheetContext) {
         return SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(22, 12, 22, 24),
+            padding: const EdgeInsets.fromLTRB(
+              22,
+              12,
+              22,
+              24,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,7 +324,9 @@ class SettingsScreen extends StatelessWidget {
                   child: Container(
                     width: 44,
                     height: 5,
-                    margin: const EdgeInsets.only(bottom: 18),
+                    margin: const EdgeInsets.only(
+                      bottom: 18,
+                    ),
                     decoration: BoxDecoration(
                       color: c.line,
                       borderRadius: BorderRadius.circular(3),
@@ -136,7 +352,12 @@ class SettingsScreen extends StatelessWidget {
       body: SafeArea(
         child: ContentWidth(
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+            padding: const EdgeInsets.fromLTRB(
+              20,
+              16,
+              20,
+              28,
+            ),
             children: [
               ScreenHeader(
                 title: 'Settings',
@@ -148,6 +369,7 @@ class SettingsScreen extends StatelessWidget {
               // ------------------------------------------------
               // PROFILE
               // ------------------------------------------------
+
               SurfaceCard(
                 child: Row(
                   children: [
@@ -174,7 +396,8 @@ class SettingsScreen extends StatelessWidget {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment:
+                            CrossAxisAlignment.start,
                         children: [
                           Text(
                             WorkerSession.displayName,
@@ -202,7 +425,11 @@ class SettingsScreen extends StatelessWidget {
               // ------------------------------------------------
               // APPEARANCE
               // ------------------------------------------------
-              Text('Appearance', style: t.label),
+
+              Text(
+                'Appearance',
+                style: t.label,
+              ),
               const SizedBox(height: 10),
 
               SurfaceCard(
@@ -235,7 +462,8 @@ class SettingsScreen extends StatelessWidget {
                               Text(
                                 'Dark mode',
                                 style: t.body.copyWith(
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight:
+                                      FontWeight.w700,
                                 ),
                               ),
                               Text(
@@ -264,7 +492,11 @@ class SettingsScreen extends StatelessWidget {
               // ------------------------------------------------
               // SUPPORT
               // ------------------------------------------------
-              Text('Support', style: t.label),
+
+              Text(
+                'Support',
+                style: t.label,
+              ),
               const SizedBox(height: 10),
 
               SurfaceCard(
@@ -296,15 +528,159 @@ class SettingsScreen extends StatelessWidget {
               // ------------------------------------------------
               // ACCOUNT
               // ------------------------------------------------
-              Text('Account', style: t.label),
+
+              Text(
+                'Account',
+                style: t.label,
+              ),
               const SizedBox(height: 10),
 
               SurfaceCard(
                 padding: EdgeInsets.zero,
-                child: _SettingsItem(
-                  icon: Icons.logout_rounded,
-                  title: 'Sign out',
-                  onTap: () => _signOut(context),
+                child: Column(
+                  children: [
+                    // ------------------------------------------------
+                    // WORKER AVAILABILITY
+                    // ------------------------------------------------
+
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        10,
+                        12,
+                        10,
+                      ),
+                      child: Row(
+                        children: [
+                          _IconChip(
+                            icon: _isAvailable
+                                ? Icons
+                                    .check_circle_outline_rounded
+                                : Icons.block_outlined,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'AVAILABILITY',
+                                  style: t.body.copyWith(
+                                    fontWeight:
+                                        FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  _loadingAvailability
+                                      ? 'Loading...'
+                                      : _isAvailable
+                                          ? 'You are available for work'
+                                          : 'You are currently unavailable',
+                                  style: t.caption,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_loadingAvailability ||
+                              _updatingAvailability)
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          else
+                            AppSwitch(
+                              label: 'Availability',
+                              value: _isAvailable,
+                              onChanged: _changeAvailability,
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: c.line,
+                    ),
+
+                    // ------------------------------------------------
+                    // BREAK
+                    // ------------------------------------------------
+
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        16,
+                        10,
+                        12,
+                        10,
+                      ),
+                      child: Row(
+                        children: [
+                          const _IconChip(
+                            icon: Icons.coffee_outlined,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'BREAK',
+                                  style: t.body.copyWith(
+                                    fontWeight:
+                                        FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  _loadingBreak
+                                      ? 'Loading...'
+                                      : _onBreak
+                                          ? 'You\'re currently on break'
+                                          : 'Turn on when you step away',
+                                  style: t.caption,
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_loadingBreak || _updatingBreak)
+                            const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
+                            )
+                          else
+                            AppSwitch(
+                              label: 'Break',
+                              value: _onBreak,
+                              onChanged: _changeBreak,
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: c.line,
+                    ),
+
+                    _SettingsItem(
+                      icon: Icons.logout_rounded,
+                      title: 'Sign out',
+                      onTap: () => _signOut(context),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -332,12 +708,16 @@ class _IconChip extends StatelessWidget {
       width: 42,
       height: 42,
       decoration: BoxDecoration(
-        color: danger ? c.dangerSoft : c.accentSoft,
+        color: danger
+            ? c.dangerSoft
+            : c.accentSoft,
         shape: BoxShape.circle,
       ),
       child: Icon(
         icon,
-        color: danger ? c.danger : c.accent,
+        color: danger
+            ? c.danger
+            : c.accent,
         size: 22,
       ),
     );
@@ -383,7 +763,9 @@ class _SettingsItem extends StatelessWidget {
                   title,
                   style: t.body.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: danger ? c.danger : c.text,
+                    color: danger
+                        ? c.danger
+                        : c.text,
                   ),
                 ),
               ),
@@ -416,7 +798,9 @@ class _Faq extends StatelessWidget {
     final t = context.t;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(
+        vertical: 14,
+      ),
       decoration: BoxDecoration(
         border: last
             ? null
@@ -427,7 +811,8 @@ class _Faq extends StatelessWidget {
               ),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Text(
             question,

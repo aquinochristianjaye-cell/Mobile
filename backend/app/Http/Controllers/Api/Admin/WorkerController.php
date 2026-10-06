@@ -14,7 +14,9 @@ class WorkerController extends Controller
             'first_name',
             'last_name',
             'worker_id',
-            'mobile'
+            'mobile',
+            'is_available',
+            'is_on_break'
         )->orderBy('first_name')->get();
 
         return response()->json([

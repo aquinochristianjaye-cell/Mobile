@@ -16,10 +16,17 @@ class Worker extends Authenticatable
         'worker_id',
         'mobile',
         'password',
+        'is_available',
+        'is_on_break',
     ];
 
     protected $hidden = [
         'password',
+    ];
+
+    protected $casts = [
+        'is_available' => 'boolean',
+        'is_on_break' => 'boolean',
     ];
 
     public function assignments()

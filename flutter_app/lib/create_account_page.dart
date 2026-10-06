@@ -400,7 +400,7 @@ class _CreateAccountPageState extends State<CreateAccountPage> {
         const SizedBox(width: 9),
         const Flexible(
           child: Text(
-            'System online — Saturday, August 29, 2026',
+            'DEVELOPED BY WONDERPETS',
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: Color(0xFF5B6472),

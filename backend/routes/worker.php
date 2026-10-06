@@ -33,3 +33,32 @@ Route::get(
     '/worker/driver/{driverId}/location',
     [WorkerController::class, 'driverLocation']
 );
+
+// ----------------------------------------------------------
+// WORKER AVAILABILITY
+// ----------------------------------------------------------
+
+Route::get(
+    '/worker/{workerId}/availability',
+    [WorkerController::class, 'getAvailability']
+);
+
+Route::put(
+    '/worker/{workerId}/availability',
+    [WorkerController::class, 'updateAvailability']
+);
+
+// ----------------------------------------------------------
+// WORKER BREAK
+// ----------------------------------------------------------
+
+Route::get(
+    '/worker/{workerId}/break',
+    [WorkerController::class, 'getBreak']
+);
+
+Route::put(
+    '/worker/{workerId}/break',
+    [WorkerController::class, 'updateBreak']
+);
+
