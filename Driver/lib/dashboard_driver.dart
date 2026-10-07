@@ -56,6 +56,9 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
   // from overwriting a newer result.
   int _completedLoadVersion = 0;
 
+  // Prevent multiple cancellation requests.
+  bool _isCancelling = false;
+
   @override
   void initState() {
     super.initState();
@@ -90,7 +93,8 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
 
   Future<void> _startLocationTracking() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      bool serviceEnabled =
+          await Geolocator.isLocationServiceEnabled();
 
       if (!serviceEnabled) {
         debugPrint('Location services are disabled.');
@@ -110,7 +114,9 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        debugPrint('Location permission permanently denied.');
+        debugPrint(
+          'Location permission permanently denied.',
+        );
         return;
       }
 
@@ -129,70 +135,75 @@ class _MainScreenDriverState extends State<MainScreenDriver> {
     }
   }
 
-Future<void> _updateCurrentLocation() async {
-  try {
-    final Position position =
-        await Geolocator.getCurrentPosition(
-      locationSettings: const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 5,
-      ),
-    );
+  Future<void> _updateCurrentLocation() async {
+    try {
+      final Position position =
+          await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 5,
+        ),
+      );
 
-    if (!mounted) {
-      return;
-    }
-
-    setState(() {
-      _currentPosition = position;
-    });
-
-    debugPrint(
-      'Driver location: '
-      '${position.latitude}, ${position.longitude}',
-    );
-
-        debugPrint(
-      'Sending location for appointment: ${widget.appointmentId}',
-    );
-
-    // Send the driver's location to Laravel.
-    if (widget.appointmentId != null) {
-      try {
-
-        debugPrint('Sending location to Laravel...');
-        
-        final response = await http.post(
-          Uri.parse(
-            'http://127.0.0.1:8000/api/driver/location',
-          ),
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode({
-            'driver_id': widget.driverId,
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-          }),
-        );
-
-        debugPrint(
-          'Location API response: '
-          '${response.statusCode} ${response.body}',
-        );
-      } catch (e) {
-        debugPrint(
-          'Could not send driver location: $e',
-        );
+      if (!mounted) {
+        return;
       }
+
+      setState(() {
+        _currentPosition = position;
+      });
+
+      debugPrint(
+        'Driver location: '
+        '${position.latitude}, ${position.longitude}',
+      );
+
+      debugPrint(
+        'Sending location for appointment: '
+        '${widget.appointmentId}',
+      );
+
+      // Send the driver's location to Laravel.
+      if (widget.appointmentId != null &&
+          currentStatus != 'cancelled' &&
+          currentStatus != 'completed') {
+        try {
+          debugPrint(
+            'Sending location to Laravel...',
+          );
+
+          final response = await http.post(
+            Uri.parse(
+              'http://127.0.0.1:8000/api/driver/location',
+            ),
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'driver_id': widget.driverId,
+              'appointment_id': widget.appointmentId,
+              'latitude': position.latitude,
+              'longitude': position.longitude,
+            }),
+          );
+
+          debugPrint(
+            'Location API response: '
+            '${response.statusCode} ${response.body}',
+          );
+        } catch (e) {
+          debugPrint(
+            'Could not send driver location: $e',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint(
+        'Could not get driver location: $e',
+      );
     }
-  } catch (e) {
-    debugPrint(
-      'Could not get driver location: $e',
-    );
   }
-}
 
   // ----------------------------------------------------------
   // LOAD CURRENT APPOINTMENT STATUS
@@ -206,7 +217,9 @@ Future<void> _updateCurrentLocation() async {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://127.0.0.1:8000/api/driver/${widget.driverId}/appointments/${widget.appointmentId}',
+          'http://127.0.0.1:8000/api/driver/'
+          '${widget.driverId}/appointments/'
+          '${widget.appointmentId}',
         ),
         headers: {
           'Accept': 'application/json',
@@ -229,6 +242,24 @@ Future<void> _updateCurrentLocation() async {
           appointment['status']?.toString() ?? '';
 
       if (!mounted) return;
+
+      // ------------------------------------------------------
+      // APPOINTMENT WAS CANCELLED
+      // ------------------------------------------------------
+
+      if (status == 'cancelled') {
+        setState(() {
+          currentStatus = 'cancelled';
+        });
+
+        // Stop checking this appointment.
+        _statusTimer?.cancel();
+
+        // Stop GPS tracking.
+        _locationTimer?.cancel();
+
+        return;
+      }
 
       // ------------------------------------------------------
       // WORKER FINISHED THE WASH
@@ -289,17 +320,185 @@ Future<void> _updateCurrentLocation() async {
   }
 
   // ----------------------------------------------------------
+  // CANCEL APPOINTMENT
+  // ----------------------------------------------------------
+
+  Future<void> _cancelAppointment() async {
+    if (widget.appointmentId == null) {
+      return;
+    }
+
+    if (currentStatus != 'pending' &&
+        currentStatus != 'assigned') {
+      return;
+    }
+
+    if (_isCancelling) {
+      return;
+    }
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        final c = context.c;
+        final t = context.t;
+
+        return AlertDialog(
+          backgroundColor: c.surface,
+          title: Text(
+            'Cancel appointment?',
+            style: t.heading,
+          ),
+          content: Text(
+            'Are you sure you want to cancel this wash appointment? '
+            'You can book another wash later.',
+            style: t.body.copyWith(
+              color: c.textMuted,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false);
+              },
+              child: Text(
+                'Keep appointment',
+                style: TextStyle(
+                  color: c.textMuted,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true);
+              },
+              child: Text(
+                'Cancel appointment',
+                style: TextStyle(
+                  color: c.danger,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isCancelling = true;
+    });
+
+    try {
+      final response = await http.post(
+        Uri.parse(
+          'http://127.0.0.1:8000/api/driver/appointments/'
+          '${widget.appointmentId}/cancel',
+        ),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'driver_id': widget.driverId,
+        }),
+      );
+
+      debugPrint(
+        'Cancel appointment response: '
+        '${response.statusCode} ${response.body}',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      if (response.statusCode == 200) {
+        // Mark the appointment as cancelled locally.
+        setState(() {
+          currentStatus = 'cancelled';
+          _isCancelling = false;
+        });
+
+        // Stop polling this appointment.
+        _statusTimer?.cancel();
+
+        // Stop GPS tracking.
+        _locationTimer?.cancel();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Appointment cancelled successfully.',
+            ),
+          ),
+        );
+      } else {
+        String message =
+            'Unable to cancel the appointment.';
+
+        try {
+          final data = jsonDecode(response.body);
+
+          if (data['message'] != null) {
+            message = data['message'].toString();
+          }
+        } catch (_) {
+          // Keep the default message.
+        }
+
+        setState(() {
+          _isCancelling = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isCancelling = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not connect to the server. '
+            'Please try again.',
+          ),
+        ),
+      );
+
+      debugPrint(
+        'Cancel appointment error: $e',
+      );
+    }
+  }
+
+  // ----------------------------------------------------------
   // LOAD COMPLETED WASHES
   // ----------------------------------------------------------
 
   Future<void> _loadCompletedWashes() async {
     // Give this request a unique version number.
-    final int requestVersion = ++_completedLoadVersion;
+    final int requestVersion =
+        ++_completedLoadVersion;
 
     try {
       final response = await http.get(
         Uri.parse(
-          'http://127.0.0.1:8000/api/driver/${widget.driverId}/completed',
+          'http://127.0.0.1:8000/api/driver/'
+          '${widget.driverId}/completed',
         ),
         headers: {
           'Accept': 'application/json',
@@ -346,17 +545,20 @@ Future<void> _updateCurrentLocation() async {
     }
   }
 
-  // Pull-to-refresh: reload the list and, if a wash is active, its status.
+  // Pull-to-refresh: reload the list and, if a wash is active,
+  // its status.
   Future<void> _refreshAll() async {
     if (widget.appointmentId != null &&
-        currentStatus != 'completed') {
+        currentStatus != 'completed' &&
+        currentStatus != 'cancelled') {
       await _loadAppointmentStatus();
     }
 
     await _loadCompletedWashes();
 
     if (widget.appointmentId != null &&
-        currentStatus != 'completed') {
+        currentStatus != 'completed' &&
+        currentStatus != 'cancelled') {
       await _updateCurrentLocation();
     }
   }
@@ -387,6 +589,9 @@ Future<void> _updateCurrentLocation() async {
       case 'assigned':
         return 'On the way';
       case 'arrived':
+        return 'Ready to wash';
+      case 'cancelled':
+        return 'Cancelled';
       default:
         return 'Ready to wash';
     }
@@ -398,6 +603,8 @@ Future<void> _updateCurrentLocation() async {
         return 'Your truck is being washed. This screen updates when it\'s done.';
       case 'assigned':
         return 'Head to the station and show your gate pass when you arrive.';
+      case 'cancelled':
+        return 'This wash appointment has been cancelled. You can book another wash.';
       case 'arrived':
       default:
         return 'You\'re checked in. A worker will start your wash shortly.';
@@ -410,6 +617,8 @@ Future<void> _updateCurrentLocation() async {
         return c.accent;
       case 'assigned':
         return c.signal;
+      case 'cancelled':
+        return c.danger;
       case 'arrived':
       default:
         return c.success;
@@ -422,6 +631,8 @@ Future<void> _updateCurrentLocation() async {
         return c.accentSoft;
       case 'assigned':
         return c.signalSoft;
+      case 'cancelled':
+        return c.danger.withAlpha(25);
       case 'arrived':
       default:
         return c.successSoft;
@@ -441,10 +652,14 @@ Future<void> _updateCurrentLocation() async {
         builder: (context) => QrCodeDriverScreen(
           driverId: widget.driverId,
           appointmentId: widget.appointmentId!,
-          plateNumber: widget.plateNumber ?? 'Unknown',
-          livestockLoad: widget.livestockLoad ?? '',
-          preferredTime: widget.preferredTime ?? '',
-          comingFrom: widget.comingFrom ?? '',
+          plateNumber:
+              widget.plateNumber ?? 'Unknown',
+          livestockLoad:
+              widget.livestockLoad ?? '',
+          preferredTime:
+              widget.preferredTime ?? '',
+          comingFrom:
+              widget.comingFrom ?? '',
           fromDashboard: true,
         ),
       ),
@@ -471,14 +686,20 @@ Future<void> _updateCurrentLocation() async {
     final c = context.c;
     final t = context.t;
 
-    // Current wash disappears after the worker finishes.
+    // Current wash disappears after the worker finishes
+    // or after the driver cancels it.
     final bool hasAppointment =
         widget.appointmentId != null &&
-        currentStatus != 'completed';
+        currentStatus != 'completed' &&
+        currentStatus != 'cancelled';
 
     final bool justCompleted =
         widget.appointmentId != null &&
         currentStatus == 'completed';
+
+    final bool justCancelled =
+        widget.appointmentId != null &&
+        currentStatus == 'cancelled';
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -502,7 +723,8 @@ Future<void> _updateCurrentLocation() async {
           color: c.accent,
           backgroundColor: c.surface,
           child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics:
+                const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(
               20,
               16,
@@ -546,7 +768,12 @@ Future<void> _updateCurrentLocation() async {
               if (justCompleted)
                 _buildCompletedBanner(c, t),
 
-              if (!hasAppointment && !justCompleted)
+              if (justCancelled)
+                _buildCancelledBanner(c, t),
+
+              if (!hasAppointment &&
+                  !justCompleted &&
+                  !justCancelled)
                 _buildNoWashCard(c, t),
 
               const SizedBox(height: 32),
@@ -577,6 +804,10 @@ Future<void> _updateCurrentLocation() async {
     AppColors c,
     AppType t,
   ) {
+    final bool canCancel =
+        currentStatus == 'pending' ||
+        currentStatus == 'assigned';
+
     return SurfaceCard(
       padding: const EdgeInsets.fromLTRB(
         18,
@@ -584,7 +815,8 @@ Future<void> _updateCurrentLocation() async {
         18,
         20,
       ),
-      borderColor: c.accent.withAlpha(110),
+      borderColor:
+          c.accent.withAlpha(110),
       child: Column(
         crossAxisAlignment:
             CrossAxisAlignment.start,
@@ -600,7 +832,8 @@ Future<void> _updateCurrentLocation() async {
               Pill(
                 label: _currentStatusText,
                 color: _statusColor(c),
-                background: _statusBackground(c),
+                background:
+                    _statusBackground(c),
               ),
             ],
           ),
@@ -612,9 +845,11 @@ Future<void> _updateCurrentLocation() async {
               Flexible(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
+                  alignment:
+                      Alignment.centerLeft,
                   child: PlateTag(
-                    widget.plateNumber ?? 'Unknown',
+                    widget.plateNumber ??
+                        'Unknown',
                     fontSize: 30,
                   ),
                 ),
@@ -625,7 +860,8 @@ Future<void> _updateCurrentLocation() async {
           const SizedBox(height: 16),
 
           _InfoLine(
-            icon: Icons.location_on_outlined,
+            icon:
+                Icons.location_on_outlined,
             text:
                 (widget.comingFrom == null ||
                         widget.comingFrom!.isEmpty)
@@ -638,7 +874,8 @@ Future<void> _updateCurrentLocation() async {
           _InfoLine(
             icon: Icons.event_outlined,
             text:
-                '${widget.livestockLoad ?? ''}  ·  ${widget.preferredTime ?? ''}',
+                '${widget.livestockLoad ?? ''}  ·  '
+                '${widget.preferredTime ?? ''}',
           ),
 
           const SizedBox(height: 24),
@@ -660,9 +897,64 @@ Future<void> _updateCurrentLocation() async {
 
           PrimaryButton(
             label: 'Show gate pass',
-            icon: Icons.qr_code_2_rounded,
+            icon:
+                Icons.qr_code_2_rounded,
             onPressed: _openGatePass,
           ),
+
+          // ----------------------------------------------------
+          // CANCEL APPOINTMENT
+          // ----------------------------------------------------
+
+          if (canCancel) ...[
+            const SizedBox(height: 12),
+
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _isCancelling
+                    ? null
+                    : _cancelAppointment,
+                icon: _isCancelling
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child:
+                            CircularProgressIndicator(
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Icon(
+                        Icons.cancel_outlined,
+                      ),
+                label: Text(
+                  _isCancelling
+                      ? 'Cancelling...'
+                      : 'Cancel appointment',
+                ),
+                style:
+                    OutlinedButton.styleFrom(
+                  foregroundColor:
+                      c.danger,
+                  side: BorderSide(
+                    color: c.danger
+                        .withAlpha(150),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(
+                    vertical: 14,
+                  ),
+                  shape:
+                      RoundedRectangleBorder(
+                    borderRadius:
+                        BorderRadius.circular(
+                      14,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
 
           // Temporary GPS information.
           if (_currentPosition != null) ...[
@@ -679,13 +971,71 @@ Future<void> _updateCurrentLocation() async {
     );
   }
 
+  // ----------------------------------------------------------
+  // CANCELLED BANNER
+  // ----------------------------------------------------------
+
+  Widget _buildCancelledBanner(
+    AppColors c,
+    AppType t,
+  ) {
+    return SurfaceCard(
+      color: c.danger.withAlpha(20),
+      borderColor:
+          c.danger.withAlpha(120),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: c.danger,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.close_rounded,
+              color: c.bg,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Appointment cancelled',
+                  style: t.heading,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${widget.plateNumber ?? 'Your truck'} '
+                  'appointment has been cancelled.',
+                  style: t.bodyMuted.copyWith(
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------
+  // COMPLETED BANNER
+  // ----------------------------------------------------------
+
   Widget _buildCompletedBanner(
     AppColors c,
     AppType t,
   ) {
     return SurfaceCard(
       color: c.successSoft,
-      borderColor: c.success.withAlpha(120),
+      borderColor:
+          c.success.withAlpha(120),
       child: Row(
         children: [
           Container(
@@ -713,7 +1063,8 @@ Future<void> _updateCurrentLocation() async {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${widget.plateNumber ?? 'Your truck'} is clean and ready to go.',
+                  '${widget.plateNumber ?? 'Your truck'} '
+                  'is clean and ready to go.',
                   style: t.bodyMuted.copyWith(
                     fontSize: 15,
                   ),
@@ -725,6 +1076,10 @@ Future<void> _updateCurrentLocation() async {
       ),
     );
   }
+
+  // ----------------------------------------------------------
+  // NO WASH CARD
+  // ----------------------------------------------------------
 
   Widget _buildNoWashCard(
     AppColors c,
@@ -785,10 +1140,12 @@ Future<void> _updateCurrentLocation() async {
           3,
           (_) => Container(
             height: 76,
-            margin: const EdgeInsets.only(
+            margin:
+                const EdgeInsets.only(
               bottom: 12,
             ),
-            decoration: BoxDecoration(
+            decoration:
+                BoxDecoration(
               color: c.surface,
               borderRadius:
                   BorderRadius.circular(18),
@@ -825,7 +1182,8 @@ Future<void> _updateCurrentLocation() async {
 
         final String date =
             _formatDate(
-          appointment['preferred_datetime'],
+          appointment[
+              'preferred_datetime'],
         );
 
         return Padding(
@@ -855,7 +1213,9 @@ Future<void> _updateCurrentLocation() async {
 
     try {
       final date =
-          DateTime.parse(value.toString());
+          DateTime.parse(
+        value.toString(),
+      );
 
       const months = [
         'Jan',
@@ -872,7 +1232,8 @@ Future<void> _updateCurrentLocation() async {
         'Dec',
       ];
 
-      return '${months[date.month - 1]} ${date.day}';
+      return '${months[date.month - 1]} '
+          '${date.day}';
     } catch (e) {
       return value.toString();
     }
@@ -889,7 +1250,8 @@ Future<void> _updateCurrentLocation() async {
     String details,
   ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:
+          const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: c.surface,
         borderRadius:
@@ -921,7 +1283,8 @@ Future<void> _updateCurrentLocation() async {
               children: [
                 Text(
                   plate.toUpperCase(),
-                  style: t.heading.copyWith(
+                  style:
+                      t.heading.copyWith(
                     letterSpacing: 1.5,
                   ),
                 ),
@@ -940,8 +1303,10 @@ Future<void> _updateCurrentLocation() async {
           Pill(
             label: 'Washed',
             color: c.success,
-            background: c.successSoft,
-            icon: Icons.check_rounded,
+            background:
+                c.successSoft,
+            icon:
+                Icons.check_rounded,
           ),
         ],
       ),
@@ -979,7 +1344,8 @@ class _InfoLine extends StatelessWidget {
               color: c.text,
             ),
             maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            overflow:
+                TextOverflow.ellipsis,
           ),
         ),
       ],

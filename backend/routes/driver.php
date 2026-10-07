@@ -9,9 +9,24 @@ Route::get('/driver/test', [DriverController::class, 'test']);
 
 Route::post('/driver/login', [DriverAuthController::class, 'login']);
 
+Route::post(
+    '/driver/forgot-password',
+    [DriverAuthController::class, 'forgotPassword']
+);
+
+Route::post(
+    '/driver/reset-password',
+    [DriverAuthController::class, 'resetPassword']
+);
+
 Route::post('/driver/location', [DriverController::class, 'updateLocation']);
 
 Route::post('/driver/appointments', [AppointmentController::class, 'store']);
+
+Route::post(
+    '/driver/appointments/{appointmentId}/cancel',
+    [AppointmentController::class, 'cancel']
+);
 
 Route::post('/driver/check-in', [AppointmentController::class, 'checkIn']);
 

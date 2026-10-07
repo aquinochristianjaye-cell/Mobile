@@ -45,6 +45,57 @@ class AppointmentController extends Controller
         ], 201);
     }
 
+    // ----------------------------------------------------------
+    // CANCEL DRIVER APPOINTMENT
+    // ----------------------------------------------------------
+
+    public function cancel(Request $request, $appointmentId)
+    {
+        $validated = $request->validate([
+            'driver_id' => 'required|exists:drivers,id',
+        ]);
+
+        $appointment = Appointment::where('id', $appointmentId)
+            ->where('driver_id', $validated['driver_id'])
+            ->first();
+
+        if (!$appointment) {
+            return response()->json([
+                'message' => 'Appointment not found or does not belong to this driver.',
+            ], 404);
+        }
+
+        // Driver can only cancel an appointment that has not
+        // arrived or started washing yet.
+        if (!in_array($appointment->status, [
+            'pending',
+            'assigned',
+        ])) {
+            return response()->json([
+                'message' => 'This appointment can no longer be cancelled.',
+                'status' => $appointment->status,
+            ], 400);
+        }
+
+        $appointment->update([
+            'status' => 'cancelled',
+        ]);
+
+        // Notify Admin
+        Notification::create([
+            'recipient' => 'admin',
+            'title' => 'Appointment Cancelled',
+            'message' => 'Truck ' . $appointment->truck_plate .
+                ' has cancelled its wash appointment.',
+            'appointment_id' => $appointment->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Appointment cancelled successfully.',
+            'appointment' => $appointment,
+        ], 200);
+    }
+
     public function checkIn(Request $request)
     {
         $validated = $request->validate([
@@ -78,6 +129,14 @@ class AppointmentController extends Controller
             return response()->json([
                 'message' => 'Appointment not found',
             ], 404);
+        }
+
+        // Cancelled appointments cannot be checked in.
+        if ($appointment->status === 'cancelled') {
+            return response()->json([
+                'message' => 'This appointment has been cancelled. The QR code is no longer valid.',
+                'appointment' => $appointment,
+            ], 409);
         }
 
         if ($appointment->status === 'arrived') {
@@ -206,3 +265,4 @@ class AppointmentController extends Controller
         ], 200);
     }
 }
+

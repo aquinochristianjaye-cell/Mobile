@@ -14,6 +14,13 @@ class WorkerAssignmentController extends Controller
         ])
         ->where('worker_id', $workerId)
         ->whereIn('status', ['assigned', 'washing'])
+        ->whereHas('appointment', function ($query) {
+            $query->whereIn('status', [
+                'assigned',
+                'arrived',
+                'washing',
+            ]);
+        })
         ->orderBy('created_at', 'desc')
         ->get();
 
@@ -29,6 +36,9 @@ class WorkerAssignmentController extends Controller
         ])
         ->where('worker_id', $workerId)
         ->where('status', 'completed')
+        ->whereHas('appointment', function ($query) {
+            $query->where('status', 'completed');
+        })
         ->orderBy('finished_at', 'desc')
         ->get();
 
@@ -55,9 +65,19 @@ class WorkerAssignmentController extends Controller
             ], 400);
         }
 
-        // Truck must have arrived before washing can start.
+        // Prevent cancelled appointments from being started.
         if (
             !$assignment->appointment ||
+            $assignment->appointment->status === 'cancelled'
+        ) {
+            return response()->json([
+                'message' =>
+                    'This appointment has been cancelled.',
+            ], 400);
+        }
+
+        // Truck must have arrived before washing can start.
+        if (
             $assignment->appointment->status !== 'arrived'
         ) {
             return response()->json([
@@ -104,6 +124,17 @@ class WorkerAssignmentController extends Controller
             ], 400);
         }
 
+        // Prevent a cancelled appointment from being completed.
+        if (
+            !$assignment->appointment ||
+            $assignment->appointment->status === 'cancelled'
+        ) {
+            return response()->json([
+                'message' =>
+                    'This appointment has been cancelled.',
+            ], 400);
+        }
+
         // Record exact washing finish time.
         $assignment->finished_at = now();
         $assignment->status = 'completed';
@@ -121,4 +152,3 @@ class WorkerAssignmentController extends Controller
         ], 200);
     }
 }
-
