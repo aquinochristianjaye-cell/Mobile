@@ -37,9 +37,12 @@ Route::post('/admin/deploy', [WorkerAssignmentController::class, 'deploy']);
 
 Route::get('/admin/workers', [WorkerController::class, 'index']);
 
+Route::post(
+    '/admin/workers/{workerId}/reset-password',
+    [WorkerController::class, 'resetPassword']
+);
+
 Route::get('/admin/assignments/active', [WorkerAssignmentController::class, 'active']);
-
-
 
 Route::get(
     '/admin/assignments/completed',

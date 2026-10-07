@@ -130,6 +130,13 @@ class WorkerAssignmentController extends Controller
             'appointment.driver',
         ])
         ->whereIn('status', ['assigned', 'washing'])
+        ->whereHas('appointment', function ($query) {
+            $query->whereIn('status', [
+                'assigned',
+                'arrived',
+                'washing',
+            ]);
+        })
         ->orderBy('created_at', 'asc')
         ->get();
 
@@ -157,4 +164,3 @@ class WorkerAssignmentController extends Controller
         ], 200);
     }
 }
-

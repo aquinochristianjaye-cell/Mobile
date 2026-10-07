@@ -18,6 +18,7 @@ class Worker extends Authenticatable
         'password',
         'is_available',
         'is_on_break',
+        'must_change_password',
     ];
 
     protected $hidden = [
@@ -27,6 +28,7 @@ class Worker extends Authenticatable
     protected $casts = [
         'is_available' => 'boolean',
         'is_on_break' => 'boolean',
+        'must_change_password' => 'boolean',
     ];
 
     public function assignments()

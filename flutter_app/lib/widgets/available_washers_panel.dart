@@ -764,6 +764,522 @@ class _AvailableWashersPanelState
     );
   }
 
+  // ===================== RESET WORKER PASSWORD =====================
+
+  Future<void> _openResetPasswordDialog(
+    Map<String, dynamic> worker,
+  ) async {
+    final passwordController = TextEditingController();
+    final confirmPasswordController =
+        TextEditingController();
+
+    bool obscurePassword = true;
+    bool obscureConfirmPassword = true;
+    bool isResetting = false;
+
+    final workerDatabaseId = worker['id'];
+
+    final firstName =
+        worker['first_name']?.toString() ?? '';
+
+    final lastName =
+        worker['last_name']?.toString() ?? '';
+
+    final workerName =
+        '$firstName $lastName'.trim();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: !isResetting,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (
+            context,
+            setDialogState,
+          ) {
+            return AlertDialog(
+              backgroundColor: AppColors.panel,
+              shape: RoundedRectangleBorder(
+                borderRadius:
+                    BorderRadius.circular(16),
+              ),
+              titlePadding:
+                  const EdgeInsets.fromLTRB(
+                24,
+                22,
+                24,
+                8,
+              ),
+              contentPadding:
+                  const EdgeInsets.fromLTRB(
+                24,
+                8,
+                24,
+                12,
+              ),
+              actionsPadding:
+                  const EdgeInsets.fromLTRB(
+                24,
+                4,
+                24,
+                18,
+              ),
+              title: const Text(
+                'Reset Worker Password',
+                style: TextStyle(
+                  color: AppColors.text,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: SizedBox(
+                  width: 460,
+                  child: Column(
+                    crossAxisAlignment:
+                        CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        workerName.isEmpty
+                            ? 'Reset this worker\'s password.'
+                            : 'Reset the password for $workerName.',
+                        style: const TextStyle(
+                          color: AppColors.textDim,
+                          fontSize: 12,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      const Text(
+                        'The worker will be required to create a new permanent password after logging in.',
+                        style: TextStyle(
+                          color: AppColors.textFaint,
+                          fontSize: 11,
+                          height: 1.4,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
+                      // TEMPORARY PASSWORD
+                      const Text(
+                        'Temporary Password',
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 7),
+
+                      TextField(
+                        controller:
+                            passwordController,
+                        obscureText:
+                            obscurePassword,
+                        enabled: !isResetting,
+                        style: const TextStyle(
+                          color: AppColors.text,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Enter temporary password',
+                          hintStyle:
+                              const TextStyle(
+                            color:
+                                AppColors.textFaint,
+                          ),
+                          prefixIcon:
+                              const Icon(
+                            Icons.lock_reset_outlined,
+                            color:
+                                AppColors.textDim,
+                            size: 18,
+                          ),
+                          suffixIcon:
+                              IconButton(
+                            onPressed:
+                                isResetting
+                                    ? null
+                                    : () {
+                                        setDialogState(() {
+                                          obscurePassword =
+                                              !obscurePassword;
+                                        });
+                                      },
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons
+                                      .visibility_off_outlined
+                                  : Icons
+                                      .visibility_outlined,
+                              color:
+                                  AppColors.textDim,
+                              size: 18,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor:
+                              AppColors.panel2,
+                          contentPadding:
+                              const EdgeInsets
+                                  .symmetric(
+                            horizontal: 12,
+                            vertical: 13,
+                          ),
+                          border:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                BorderSide(
+                              color:
+                                  AppColors.lineStrong,
+                            ),
+                          ),
+                          enabledBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                BorderSide(
+                              color:
+                                  AppColors.lineStrong,
+                            ),
+                          ),
+                          focusedBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                const BorderSide(
+                              color:
+                                  AppColors.water,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // CONFIRM TEMPORARY PASSWORD
+                      const Text(
+                        'Confirm Temporary Password',
+                        style: TextStyle(
+                          color: AppColors.text,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+
+                      const SizedBox(height: 7),
+
+                      TextField(
+                        controller:
+                            confirmPasswordController,
+                        obscureText:
+                            obscureConfirmPassword,
+                        enabled: !isResetting,
+                        style: const TextStyle(
+                          color: AppColors.text,
+                        ),
+                        decoration: InputDecoration(
+                          hintText:
+                              'Confirm temporary password',
+                          hintStyle:
+                              const TextStyle(
+                            color:
+                                AppColors.textFaint,
+                          ),
+                          prefixIcon:
+                              const Icon(
+                            Icons.lock_outline,
+                            color:
+                                AppColors.textDim,
+                            size: 18,
+                          ),
+                          suffixIcon:
+                              IconButton(
+                            onPressed:
+                                isResetting
+                                    ? null
+                                    : () {
+                                        setDialogState(() {
+                                          obscureConfirmPassword =
+                                              !obscureConfirmPassword;
+                                        });
+                                      },
+                            icon: Icon(
+                              obscureConfirmPassword
+                                  ? Icons
+                                      .visibility_off_outlined
+                                  : Icons
+                                      .visibility_outlined,
+                              color:
+                                  AppColors.textDim,
+                              size: 18,
+                            ),
+                          ),
+                          filled: true,
+                          fillColor:
+                              AppColors.panel2,
+                          contentPadding:
+                              const EdgeInsets
+                                  .symmetric(
+                            horizontal: 12,
+                            vertical: 13,
+                          ),
+                          border:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                BorderSide(
+                              color:
+                                  AppColors.lineStrong,
+                            ),
+                          ),
+                          enabledBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                BorderSide(
+                              color:
+                                  AppColors.lineStrong,
+                            ),
+                          ),
+                          focusedBorder:
+                              OutlineInputBorder(
+                            borderRadius:
+                                BorderRadius
+                                    .circular(9),
+                            borderSide:
+                                const BorderSide(
+                              color:
+                                  AppColors.water,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                // CANCEL
+                TextButton(
+                  onPressed: isResetting
+                      ? null
+                      : () {
+                          Navigator.pop(
+                            dialogContext,
+                          );
+                        },
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: AppColors.textDim,
+                      fontWeight:
+                          FontWeight.w600,
+                    ),
+                  ),
+                ),
+
+                // RESET PASSWORD
+                ElevatedButton(
+                  onPressed: isResetting
+                      ? null
+                      : () async {
+                          final password =
+                              passwordController.text;
+
+                          final confirmPassword =
+                              confirmPasswordController
+                                  .text;
+
+                          if (password.isEmpty ||
+                              confirmPassword.isEmpty) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Please fill in both password fields.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (password.length < 6) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Temporary password must be at least 6 characters.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          if (password !=
+                              confirmPassword) {
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Passwords do not match.',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          setDialogState(() {
+                            isResetting = true;
+                          });
+
+                          try {
+                            final response =
+                                await http.post(
+                              Uri.parse(
+                                'http://127.0.0.1:8000/api/admin/workers/$workerDatabaseId/reset-password',
+                              ),
+                              headers: {
+                                'Accept':
+                                    'application/json',
+                              },
+                              body: {
+                                'password': password,
+                                'password_confirmation':
+                                    confirmPassword,
+                              },
+                            );
+
+                            if (!mounted) return;
+
+                            if (response.statusCode ==
+                                200) {
+                              Navigator.pop(
+                                dialogContext,
+                              );
+
+                              await loadData();
+
+                              if (!mounted) return;
+
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Worker password reset successfully. The worker must create a new password when logging in.',
+                                  ),
+                                ),
+                              );
+                            } else {
+                              setDialogState(() {
+                                isResetting = false;
+                              });
+
+                              String message =
+                                  'Failed to reset worker password.';
+
+                              if (response.body
+                                  .isNotEmpty) {
+                                message =
+                                    response.body;
+                              }
+
+                              ScaffoldMessenger.of(
+                                context,
+                              ).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text(message),
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+
+                            setDialogState(() {
+                              isResetting = false;
+                            });
+
+                            ScaffoldMessenger.of(
+                              context,
+                            ).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Could not connect to the server.\n$e',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        AppColors.water,
+                    foregroundColor:
+                        AppColors.bg,
+                    disabledBackgroundColor:
+                        AppColors.water.withValues(
+                      alpha: 0.4,
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 18,
+                      vertical: 12,
+                    ),
+                    shape:
+                        RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: isResetting
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child:
+                              CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color:
+                                AppColors.bg,
+                          ),
+                        )
+                      : const Text(
+                          'Reset Password',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight:
+                                FontWeight.w800,
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+  }
+
   // ===================== WORKER STATUS HELPERS =====================
 
   bool _isWorkerAvailable(
@@ -822,14 +1338,19 @@ class _AvailableWashersPanelState
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.water,
           side: BorderSide(
-            color: AppColors.water.withValues(alpha: 0.35),
+            color: AppColors.water.withValues(
+              alpha: 0.35,
+            ),
           ),
-          padding: const EdgeInsets.symmetric(
+          padding:
+              const EdgeInsets.symmetric(
             horizontal: 10,
             vertical: 8,
           ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+          shape:
+              RoundedRectangleBorder(
+            borderRadius:
+                BorderRadius.circular(8),
           ),
         ),
       ),
@@ -837,7 +1358,8 @@ class _AvailableWashersPanelState
       // ===================== SCROLLABLE WORKER LIST =====================
       child: workers.isEmpty
           ? const Padding(
-              padding: EdgeInsets.symmetric(
+              padding:
+                  EdgeInsets.symmetric(
                 vertical: 8,
               ),
               child: Text(
@@ -852,28 +1374,42 @@ class _AvailableWashersPanelState
               height: 130,
               child: ListView.builder(
                 itemCount: workers.length,
-                itemBuilder: (context, index) {
-                  final worker = workers[index];
+                itemBuilder:
+                    (context, index) {
+                  final worker =
+                      workers[index];
 
-                  final workerId = worker['id'];
+                  final workerId =
+                      worker['id'];
 
                   final firstName =
-                      worker['first_name']?.toString() ?? '';
+                      worker['first_name']
+                              ?.toString() ??
+                          '';
 
                   final lastName =
-                      worker['last_name']?.toString() ?? '';
+                      worker['last_name']
+                              ?.toString() ??
+                          '';
 
                   final name =
-                      '$firstName $lastName'.trim();
+                      '$firstName $lastName'
+                          .trim();
 
                   final isAvailable =
-                      _isWorkerAvailable(worker);
+                      _isWorkerAvailable(
+                    worker,
+                  );
 
                   final isOnBreak =
-                      _isWorkerOnBreak(worker);
+                      _isWorkerOnBreak(
+                    worker,
+                  );
 
                   final isOnWork =
-                      busyWorkerIds.contains(workerId);
+                      busyWorkerIds.contains(
+                    workerId,
+                  );
 
                   // Priority:
                   // 1. On Work
@@ -886,24 +1422,31 @@ class _AvailableWashersPanelState
 
                   if (isOnWork) {
                     status = 'ON WORK';
-                    icon = Icons.local_car_wash;
-                    statusColor = AppColors.crit;
+                    icon =
+                        Icons.local_car_wash;
+                    statusColor =
+                        AppColors.crit;
                   } else if (isOnBreak) {
                     status = 'ON BREAK';
-                    icon = Icons.free_breakfast_outlined;
-                    statusColor = AppColors.warn;
+                    icon = Icons
+                        .free_breakfast_outlined;
+                    statusColor =
+                        AppColors.warn;
                   } else if (!isAvailable) {
                     status = 'UNAVAILABLE';
                     icon = Icons.close;
-                    statusColor = AppColors.crit;
+                    statusColor =
+                        AppColors.crit;
                   } else {
                     status = 'AVAILABLE';
                     icon = Icons.check;
-                    statusColor = AppColors.ok;
+                    statusColor =
+                        AppColors.ok;
                   }
 
                   return Padding(
-                    padding: const EdgeInsets.only(
+                    padding:
+                        const EdgeInsets.only(
                       bottom: 8,
                     ),
                     child: _WasherRow(
@@ -913,6 +1456,11 @@ class _AvailableWashersPanelState
                       status: status,
                       icon: icon,
                       color: statusColor,
+                      onResetPassword: () {
+                        _openResetPasswordDialog(
+                          worker,
+                        );
+                      },
                     ),
                   );
                 },
@@ -929,24 +1477,28 @@ class _WasherRow extends StatelessWidget {
   final String status;
   final IconData icon;
   final Color color;
+  final VoidCallback onResetPassword;
 
   const _WasherRow({
     required this.name,
     required this.status,
     required this.icon,
     required this.color,
+    required this.onResetPassword,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
+      padding:
+          const EdgeInsets.symmetric(
         horizontal: 11,
         vertical: 9,
       ),
       decoration: BoxDecoration(
         color: AppColors.panel2,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius:
+            BorderRadius.circular(10),
         border: Border.all(
           color: AppColors.line,
         ),
@@ -957,8 +1509,11 @@ class _WasherRow extends StatelessWidget {
             width: 28,
             height: 28,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(7),
+              color: color.withValues(
+                alpha: 0.12,
+              ),
+              borderRadius:
+                  BorderRadius.circular(7),
             ),
             child: Icon(
               icon,
@@ -976,23 +1531,54 @@ class _WasherRow extends StatelessWidget {
                 size: 12.5,
                 weight: FontWeight.w600,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
 
+          // RESET PASSWORD BUTTON
+          Tooltip(
+            message: 'Reset Password',
+            child: IconButton(
+              onPressed: onResetPassword,
+              tooltip: 'Reset Password',
+              icon: const Icon(
+                Icons.lock_reset_outlined,
+                size: 18,
+                color: AppColors.water,
+              ),
+              visualDensity:
+                  VisualDensity.compact,
+              padding:
+                  const EdgeInsets.all(5),
+              constraints:
+                  const BoxConstraints(
+                minWidth: 30,
+                minHeight: 30,
+              ),
+            ),
+          ),
+
+          const SizedBox(width: 3),
+
           Container(
-            padding: const EdgeInsets.symmetric(
+            padding:
+                const EdgeInsets.symmetric(
               horizontal: 8,
               vertical: 3,
             ),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(100),
+              color: color.withValues(
+                alpha: 0.12,
+              ),
+              borderRadius:
+                  BorderRadius.circular(100),
             ),
             child: Text(
               status,
               style: TextStyle(
                 fontSize: 9.5,
-                fontWeight: FontWeight.w700,
+                fontWeight:
+                    FontWeight.w700,
                 letterSpacing: 0.3,
                 color: color,
               ),

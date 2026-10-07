@@ -351,37 +351,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
+            child: ListView(
               padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.stretch,
-                children: [
-                  _TopBar(
-                    timeStr: _timeStr,
-                    dateStr: _dateStr,
-                    notificationCount:
-                        _notifications.length,
-                    onNotificationTap:
-                        _showNotificationHistory,
-                    onSettingsTap:
-                        _showAdminSettings,
-                  ),
+              children: [
+                _TopBar(
+                  timeStr: _timeStr,
+                  dateStr: _dateStr,
+                  notificationCount:
+                      _notifications.length,
+                  onNotificationTap:
+                      _showNotificationHistory,
+                  onSettingsTap:
+                      _showAdminSettings,
+                ),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide =
-                          constraints.maxWidth > 900;
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isWide =
+                        constraints.maxWidth > 900;
 
-                      return isWide
-                          ? const _WideLayout()
-                          : const _NarrowLayout();
-                    },
-                  ),
-                ],
-              ),
+                    return isWide
+                        ? const _WideLayout()
+                        : const _NarrowLayout();
+                  },
+                ),
+              ],
             ),
           ),
         ],

@@ -9,6 +9,11 @@ Route::get('/worker/test', [WorkerController::class, 'test']);
 
 Route::post('/worker/login', [WorkerAuthController::class, 'login']);
 
+Route::post(
+    '/worker/change-password',
+    [WorkerAuthController::class, 'changePassword']
+);
+
 Route::get(
     '/worker/{workerId}/assignments',
     [WorkerAssignmentController::class, 'index']
@@ -61,4 +66,3 @@ Route::put(
     '/worker/{workerId}/break',
     [WorkerController::class, 'updateBreak']
 );
-
