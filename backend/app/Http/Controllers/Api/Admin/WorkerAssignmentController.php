@@ -22,11 +22,35 @@ class WorkerAssignmentController extends Controller
 
         \Log::info('DEPLOY VALIDATION DONE');
 
+        $appointment = Appointment::find(
+            $validated['appointment_id']
+        );
+
+        if (!$appointment) {
+            return response()->json([
+                'message' => 'Appointment not found.',
+            ], 404);
+        }
+
+        if ($appointment->status === 'cancelled') {
+            return response()->json([
+                'message' =>
+                    'This appointment has been cancelled and cannot be deployed.',
+            ], 400);
+        }
+
         $existingAssignment = WorkerAssignment::where(
             'appointment_id',
             $validated['appointment_id']
         )
         ->whereIn('status', ['assigned', 'washing'])
+        ->whereHas('appointment', function ($query) {
+            $query->whereIn('status', [
+                'assigned',
+                'arrived',
+                'washing',
+            ]);
+        })
         ->first();
 
         \Log::info('DEPLOY APPOINTMENT CHECK DONE');
@@ -42,21 +66,27 @@ class WorkerAssignmentController extends Controller
             $validated['worker_id']
         )
         ->whereIn('status', ['assigned', 'washing'])
+        ->whereHas('appointment', function ($query) {
+            $query->whereIn('status', [
+                'assigned',
+                'arrived',
+                'washing',
+            ]);
+        })
         ->first();
 
         \Log::info('DEPLOY WORKER CHECK DONE');
 
         if ($workerBusy) {
             return response()->json([
-                'message' => 'This worker is already assigned to another truck.',
+                'message' =>
+                    'This worker is already assigned to another truck.',
             ], 400);
         }
 
-        // ==========================================================
-        // WORKER AVAILABILITY / BREAK CHECK
-        // ==========================================================
-
-        $worker = Worker::find($validated['worker_id']);
+        $worker = Worker::find(
+            $validated['worker_id']
+        );
 
         if (!$worker) {
             return response()->json([
@@ -66,49 +96,64 @@ class WorkerAssignmentController extends Controller
 
         if (!$worker->is_available) {
             return response()->json([
-                'message' => 'Cannot deploy. Worker is unavailable.',
+                'message' =>
+                    'Cannot deploy. Worker is unavailable.',
             ], 400);
         }
 
         if ($worker->is_on_break) {
             return response()->json([
-                'message' => 'Cannot deploy. Worker is currently on break.',
+                'message' =>
+                    'Cannot deploy. Worker is currently on break.',
             ], 400);
         }
 
-        \Log::info('DEPLOY WORKER AVAILABILITY CHECK DONE');
-
-        // ==========================================================
-        // WASH BAY CHECK
-        // ==========================================================
+        \Log::info(
+            'DEPLOY WORKER AVAILABILITY CHECK DONE'
+        );
 
         $bayBusy = WorkerAssignment::where(
             'wash_bay_id',
             $validated['wash_bay_id']
         )
         ->whereIn('status', ['assigned', 'washing'])
+        ->whereHas('appointment', function ($query) {
+            $query->whereIn('status', [
+                'assigned',
+                'arrived',
+                'washing',
+            ]);
+        })
         ->first();
 
         \Log::info('DEPLOY BAY CHECK DONE');
 
         if ($bayBusy) {
             return response()->json([
-                'message' => 'This wash bay is currently in use.',
+                'message' =>
+                    'This wash bay is currently in use.',
             ], 400);
         }
 
-        // ==========================================================
-        // CREATE ASSIGNMENT
-        // ==========================================================
-
         $assignment = WorkerAssignment::create([
-            'appointment_id' => $validated['appointment_id'],
-            'worker_id' => $validated['worker_id'],
-            'wash_bay_id' => $validated['wash_bay_id'],
+            'appointment_id' =>
+                $validated['appointment_id'],
+            'worker_id' =>
+                $validated['worker_id'],
+            'wash_bay_id' =>
+                $validated['wash_bay_id'],
             'status' => 'assigned',
         ]);
 
         \Log::info('DEPLOY CREATE DONE');
+
+        $appointment->update([
+            'status' => 'assigned',
+        ]);
+
+        \Log::info(
+            'DEPLOY APPOINTMENT STATUS UPDATED'
+        );
 
         $assignment->load([
             'worker',
@@ -118,7 +163,8 @@ class WorkerAssignmentController extends Controller
         \Log::info('DEPLOY RELATION LOAD DONE');
 
         return response()->json([
-            'message' => 'Truck deployed successfully.',
+            'message' =>
+                'Truck deployed successfully.',
             'assignment' => $assignment,
         ], 201);
     }
@@ -144,10 +190,6 @@ class WorkerAssignmentController extends Controller
             'assignments' => $assignments,
         ], 200);
     }
-
-    // ==========================================================
-    // COMPLETED TRUCKS
-    // ==========================================================
 
     public function completed()
     {
